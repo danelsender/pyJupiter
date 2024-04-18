@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "pyjupiter"
+version = "0.1.0"
+description = "A python class plot and analyse data from the JUPITER hydrodynamic code"
+authors = ["Fabian Binkert <Fabian's email>",
+"Dan Elsender delsender@phys.ethz.ch"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+numpy = "^1.26.4"
+matplotlib = "^3.7.1"
+pyvista = "^0.43.5"
+ipywidgets = "^8.1.2"
+trame = "^3.6.0"
+widgetsnbextension = "^4.0.10"
+
+[tool.poetry.dev-dependencies]
+jupyter = "^1.0.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
