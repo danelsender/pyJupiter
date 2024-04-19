@@ -132,7 +132,7 @@ class output: #name of the class
         if (field=='dustdensity'): # I chose a different colormap for dust
             self.cmap=plt.get_cmap('inferno')
         else:
-            self.cmap=plt.get_cmap('viridis')
+            self.cmap=plt.get_cmap('hot')
 
         return fielddata
 
@@ -318,7 +318,7 @@ class output: #name of the class
         self.ax1.text(x=0.65,y=0.9,s=f"Orbit {self.N}")
         if save:
             plt.savefig(f"/home/delsender/figures/intro/{filename}_{self.N:03d}.png")
-        plt.show(block=False)
+        plt.show()
         return None
 
 

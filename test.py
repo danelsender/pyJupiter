@@ -8,4 +8,4 @@ os.chdir(OUT)
 
 N = 100
 
-jup.output(N).hill_sphere_mass(field='gasdensity', planetmass=0.001)
+jup.output(N).plotmidslice(field='gasdensity', polar=True)
