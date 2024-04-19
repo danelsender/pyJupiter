@@ -33,24 +33,24 @@ class output: #name of the class
         for lvl in range(self.maxreflvl+1): #here we loop over all the grid refinement levels.
             
             #current refinement level
-            dim_line = lvl*11+6
+            self.dim_line = lvl*11+6
 
-            dim = self.lines[dim_line]
+            dim = self.lines[self.dim_line]
 
             self.xdim[lvl] = int(dim.split(" ")[0])
             # azimuth upper and lower bounds
-            self.xlim[lvl,0] = float(self.lines[dim_line+2].split(" ")[2])
-            self.xlim[lvl,1] = float(self.lines[dim_line+2].split(" ")[-4])
+            self.xlim[lvl,0] = float(self.lines[self.dim_line+2].split(" ")[2])
+            self.xlim[lvl,1] = float(self.lines[self.dim_line+2].split(" ")[-4])
 
             self.ydim[lvl] = int(dim.split(" ")[1])
             # radial upper and lower bounds
-            self.ylim[lvl,0] = float(self.lines[dim_line+3].split(" ")[2])
-            self.ylim[lvl,1] = float(self.lines[dim_line+3].split(" ")[-4])
+            self.ylim[lvl,0] = float(self.lines[self.dim_line+3].split(" ")[2])
+            self.ylim[lvl,1] = float(self.lines[self.dim_line+3].split(" ")[-4])
 
             self.zdim[lvl] = int(dim.split(" ")[2])
             # latitude upper and lower bounds
-            self.zlim[lvl,0] = float(self.lines[dim_line+4].split(" ")[2])
-            self.zlim[lvl,1] = float(self.lines[dim_line+4].split(" ")[-4])
+            self.zlim[lvl,0] = float(self.lines[self.dim_line+4].split(" ")[2])
+            self.zlim[lvl,1] = float(self.lines[self.dim_line+4].split(" ")[-4])
 
         # check whether the simulation is 2D or 3D
         if self.zdim[lvl] == 1:
@@ -95,10 +95,10 @@ class output: #name of the class
 
         phys_data = data
         
-        if (self.field == 'gasdensity') #density field
+        if (self.field == 'gasdensity'): #density field
             phys_data = data*RHO0
         
-        if (self.field == 'gastemperature')#temperature field
+        if (self.field == 'gastemperature'): #temperature field
             phys_data = data*TEMP0
         
         return phys_data
@@ -481,6 +481,8 @@ class output: #name of the class
         self.planetmass = planetmass
         # initialise the Hill mass
         self.rHmass = 0
+        # initialise the volume summation
+        volsum = 0
         # hardcoding to work for the base mesh
         lvl = 0
 
@@ -491,6 +493,10 @@ class output: #name of the class
 
         # load in the field data (gas density by default)
         gasdata  = self.readdata(field,lvl)[:,:,:]
+        # get the delta r, theta, and phi
+        deltax = float((self.xlim[lvl,1] - self.xlim[lvl,0])/self.xdim)
+        deltay = float((self.ylim[lvl,1] - self.ylim[lvl,0])/self.ydim)
+        deltaz = float((self.zlim[lvl,1] - self.zlim[lvl,0])/self.zdim)
         #
         # loop over all cells
         # could be done more efficiently with prior knowledge to the data structure
@@ -500,6 +506,7 @@ class output: #name of the class
                 for k, zi in enumerate(self.lines[self.dim_line+4].split(" ")[2:-4]):
                     # we know where the planet is, so just ignore cells far away
                     # no such condition on z as the disc is very thin!
+                    # x, y, z = float(xi), float(yi), float(zi)
                     if abs(float(xi)) < pi/20 and 1-rH < float(yi) < 1+rH:
                         dist = sqrt(1*1 + float(yi)*float(yi) - 2*1*float(yi)*
                                     (sin(pi/2)*sin(float(zi))*cos(0-float(xi)) + 
@@ -507,14 +514,20 @@ class output: #name of the class
                         if dist < rH:
                             # multiple of two comes for the fact we are running a half disc
                             self.rHmass += 2*gasdata[k,j,i]
+                            # sum the volumes of each cell
+                            x, y, z = float(xi), float(yi), float(zi)
+                            volsum += 2 * y*y * sin(z) * deltay * deltax * deltaz
                             # print(zi)
         # we have calculated the density within the Hill sphere
         # multilpy this by Hill sphere volume                    
-        self.rHmass = self.rHmass * rHvolume
+        self.rHmass = self.rHmass
         if physical:
             XMSOL = 1.989e+33  #Solar Mass in grams
             XMSTAR = 1.0
             XM0 = XMSOL*XMSTAR
             self.rHmass *= XM0
-        # print(f"The Hill mass is: {self.rHmass}")
-        return self.rHmass
+        print(f"The Hill volume is: {rHvolume}")
+        print(f"The cell sum volume is: {volsum}")
+        print(f"The Hill mass sphere is: {self.rHmass * rHvolume}")
+        print(f"Hill mass cell volume is: {self.rHmass * volsum}")
+        return self.rHmass * volsum
