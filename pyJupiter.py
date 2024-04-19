@@ -68,38 +68,47 @@ class output: #name of the class
         self.planetmass = 0.001
         self.cmap=plt.get_cmap('hot')
 
-    def convert_to_physical_units(self, data):
+    def get_physical_units(self):
+        '''Caclulates the physical units based on code
+        untits
+        '''
+        ###########################################
+        self.AU = 1.496e+13  #Astronomical Unit in cm 
+        self.XMSOL = 1.989e+33  #Solar Mass in grams
+        self.XMSTAR = 1.0 
+        self.RGAS = 8.314e+07  #Gas Constant
+        self.GRAVC = 6.67e-08  # Gravitation Constant
+        self.R0 = 30.0 * AU #planet semi major axis
+        self.VOL0 = (R0*R0*R0)
+        self.XM0 = (XMSOL * XMSTAR)
+        self.RHO0 = (XM0 / VOL0)  # denisty conversion factor
+        self.TIME0= sqrt(VOL0/GRAVC/(XMSTAR*XMSOL))
+        self.V0 = (R0 / TIME0)
+        self.TEMP0 = (V0*V0 / RGAS) #temperature conversion factor 
+        ###########################################
+
+    def convert_to_physical_units(self,data):
         '''Convert from code units to physical cgs units
         
         IN: data                = JUPITER data
+
+        CALLS: self.get_physical_units()
         
         Assumptions:
         Star mass XMSTAR        = 1 M_sun
         Planet orbital radius   = 30 au
         
         OUT: phys_data'''
-        ###########################################
-        AU = 1.496e+13  #Astronomical Unit in cm 
-        XMSOL = 1.989e+33  #Solar Mass in grams
-        XMSTAR = 1.0 
-        RGAS = 8.314e+07  #Gas Constant
-        GRAVC = 6.67e-08  # Gravitation Constant
-        R0 = 30.0 * AU #planet semi major axis
-        VOL0 = (R0*R0*R0)
-        XM0 = (XMSOL * XMSTAR)
-        RHO0 = (XM0 / VOL0)  # denisty conversion factor
-        TIME0= sqrt(VOL0/GRAVC/(XMSTAR*XMSOL))
-        V0 = (R0 / TIME0)
-        TEMP0 = (V0*V0 / RGAS) #temperature conversion factor 
-        ###########################################
+        
+        self.get_physical_units()
 
         phys_data = data
         
         if (self.field == 'gasdensity'): #density field
-            phys_data = data*RHO0
+            phys_data = data*self.RHO0
         
         if (self.field == 'gastemperature'): #temperature field
-            phys_data = data*TEMP0
+            phys_data = data*self.TEMP0
         
         return phys_data
 
@@ -487,6 +496,8 @@ class output: #name of the class
         lvl = 0
 
         # calculate the Hill radius
+        # UPDATE THE 1 TO RP
+        # AND THE STAR MASS XMSTAR
         rH = 1 * (planetmass/(3*(1+planetmass)))**(1/3) 
         # calculate the volume of the Hill sphere
         rHvolume = 4*pi*rH**3 / 3
