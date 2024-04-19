@@ -515,6 +515,7 @@ class output: #name of the class
                             # multiple of two comes for the fact we are running a half disc
                             self.rHmass += 2*gasdata[k,j,i]
                             # sum the volumes of each cell
+                            # multiply by 2 as we are in a hemisphere
                             x, y, z = float(xi), float(yi), float(zi)
                             volsum += 2 * y*y * sin(z) * deltay * deltax * deltaz
                             # print(zi)
