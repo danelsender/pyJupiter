@@ -535,9 +535,7 @@ class output: #name of the class
         # multilpy this by Hill sphere volume                    
         self.rHmass = self.rHmass
         if physical:
-            XMSOL = 1.989e+33  #Solar Mass in grams
-            XMSTAR = 1.0
-            XM0 = XMSOL*XMSTAR
+            get_physical_units()
             self.rHmass *= XM0
         print(f"The Hill volume is: {rHvolume}")
         print(f"The cell sum volume is: {volsum}")
