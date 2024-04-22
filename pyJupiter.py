@@ -145,6 +145,23 @@ class output: #name of the class
             self.cmap=plt.get_cmap('hot')
 
         return fielddata
+    
+    def get_minmax(self,field,reflvls=-1):
+        '''
+        gets the max and min of field data in the midplane
+        
+        IN: field       = quantity of which max and min are recorded
+            reflvls     = levels of refinement
+            
+        OUT: min        = miniumum of field data
+             max        = maximum of field data'''
+        
+        if reflvls==-1: #plot all the refinement levels
+            reflvls = arange(0,self.maxreflvl+1)
+        
+        self.upddate_maxmin(field,reflvls,vel=0,z=0,azigrid=0,avg=False,vert=False)
+
+        return self.midmin, self.midmax
 
     def upddate_maxmin(self,field,reflvls,vel=0,z=0,azigrid=0,avg=True,vert=False):
         '''
@@ -200,7 +217,8 @@ class output: #name of the class
                     self.vertmin = amin(data[:,:,azigrid])
                 if (self.vertmin<1e-50):
                     self.vertmin = 1e-50
-        return None
+
+            return None
 
 
     def plot_setlimits(self,polar=False,vertical=False):
@@ -215,17 +233,17 @@ class output: #name of the class
                 self.ax.grid(False)
                 self.ax.set_xticklabels([])
             else:
-                self.axp.set_theta_zero_location('E')
+                self.ax.set_theta_zero_location('E')
 
                 # self.ax.set_xlabel('r [au]')
                 # self.ax.set_ylabel('colatidute [deg]')
                 # remove the polar grid
-                self.axp.grid(False)
+                self.ax.grid(False)
                 #remove radial ticks
-                self.axp.set_yticklabels([])
+                self.ax.set_yticklabels([])
                 #remove azi ticks
-                self.axp.set_xticklabels([])
-                self.axp.axis("off")
+                self.ax.set_xticklabels([])
+                self.ax.axis("off")
             
         else:
             if self.verticalplot:
@@ -260,23 +278,27 @@ class output: #name of the class
         print(f"x length is: {len(xplot)}")
         print(f"y length is: {len(yplot)}")
         if polar:
-            # cx=self.axp.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=self.midmin, vmax=self.midmax),shading='flat',cmap=self.cmap)
-            cx=self.axp.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=1e-3, vmax=2e-1),shading='flat',cmap=self.cmap)
+            cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=self.midmin, vmax=self.midmax),shading='flat',cmap=self.cmap)
+            # cx=self.axp.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=1e-3, vmax=2e-1),shading='flat',cmap=self.cmap)
+            if grid:
+                    grid_corners = [[xplot[0],xplot[-1],xplot[-1],xplot[0],xplot[0]],[yplot[0],yplot[0],yplot[-1],yplot[-1],yplot[0]]]
+                    print(grid_corners)
+                    self.ax.plot(grid_corners[0],grid_corners[1],c='black')
         else:
             if self.velocityfield==True:
                 cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,shading='flat',cmap=self.cmap)
             else:
                 cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=self.midmin, vmax=self.midmax),shading='flat',cmap=self.cmap)
                 if grid:
-                    grid_corners = [[xplot[0],xplot[-1],xplot[-1],xplot[0]],[yplot[0],yplot[0],yplot[-1],yplot[-1]]]
+                    grid_corners = [[xplot[0],xplot[-1],xplot[-1],xplot[0],xplot[0]],[yplot[0],yplot[0],yplot[-1],yplot[-1],yplot[0]]]
                     print(grid_corners)
-                    self.ax.plot(grid_corners[0],grid_corners[1])
+                    self.ax.plot(grid_corners[0],grid_corners[1],c='black')
 
         
 
         if lvl==0:
             if polar:
-                self.fig.colorbar(cx,ax=self.axp)
+                self.fig.colorbar(cx,ax=self.ax)
             else:
                 self.fig.colorbar(cx,ax=self.ax)
         return None
@@ -301,9 +323,10 @@ class output: #name of the class
         # self.ax.set_aspect('equal')
         
         if polar:
-            self.ax1 = self.fig.add_subplot()
-            self.ax1.set_aspect('equal')
-            self.axp = self.fig.add_axes(self.ax.get_position().bounds, polar=polar,frameon = False)
+            self.fig = plt.figure()
+            self.ax = self.fig.add_subplot(polar=polar)
+            # self.ax1.set_aspect('equal')
+            # self.axp = self.fig.add_axes(self.ax1.get_position().bounds, polar=polar,frameon = False)
             # self.fig.subplots_adjust(right=0.8)
             # self.cbar_ax = self.fig.add_axes([0.85, 0.15, 0.05, 0.7])
         else:    
@@ -325,11 +348,11 @@ class output: #name of the class
             self.plotmidlvl(lvl,polar,grid) #plot midplane data of reflevel 'lvl'
         # self.ax1.set_xlim(-self.ylim[lvl,1],self.ylim[lvl,1])
         # self.ax1.set_ylim(-self.ylim[lvl,1],self.ylim[lvl,1])
-        if polar:
-            self.ax1.set_aspect('equal')
-            self.axp.set_ylim(0,self.ylim[lvl,1])
-            self.ax1.axis("off")
-            self.ax1.text(x=0.65,y=0.9,s=f"Orbit {self.N}")
+        # if polar:
+        #     self.ax1.set_aspect('equal')
+        #     self.axp.set_ylim(0,self.ylim[0,1])
+        #     self.ax1.axis("off")
+        #     self.ax1.text(x=0.65,y=0.9,s=f"Orbit {self.N}")
         # else:
         #     self.ax.axis("off")
         #print the shape of self.slice
@@ -553,3 +576,33 @@ class output: #name of the class
         print(f"The Hill mass sphere is: {self.rHmass * rHvolume}")
         print(f"Hill mass cell volume is: {self.rHmass * volsum}")
         return self.rHmass * volsum
+
+class get:
+    
+    def __init__(self,N):
+
+        self.N = N
+
+    def global_minmax(self,field='gasdensity'):
+        '''Gets the global minimum and maximum for field data
+        
+        IN:     field           = field of which global minimum and maximum are to be found
+                N               = final output
+            
+        OUT:    globmin         = minimum of the global field data after N outputs
+                globmax         = maximum of the global field data after N outputs'''
+        
+        self.globmin = 1e+10
+        self.globmax = 0
+
+        for i in range(self.N):
+            temppmin, tempmax = output(i+1).get_minmax(field='gasdensity')
+
+            if temppmin < self.globmin:
+                self.globmin = temppmin
+            if tempmax > self.globmax:
+                self.globmax = tempmax
+        
+        return self.globmin, self.globmax
+
+
