@@ -73,18 +73,19 @@ class output: #name of the class
         untits
         '''
         ###########################################
-        self.AU = 1.496e+13  #Astronomical Unit in cm 
-        self.XMSOL = 1.989e+33  #Solar Mass in grams
-        self.XMSTAR = 1.0 
-        self.RGAS = 8.314e+07  #Gas Constant
-        self.GRAVC = 6.67e-08  # Gravitation Constant
-        self.R0 = 30.0 * AU #planet semi major axis
-        self.VOL0 = (R0*R0*R0)
-        self.XM0 = (XMSOL * XMSTAR)
-        self.RHO0 = (XM0 / VOL0)  # denisty conversion factor
-        self.TIME0= sqrt(VOL0/GRAVC/(XMSTAR*XMSOL))
-        self.V0 = (R0 / TIME0)
-        self.TEMP0 = (V0*V0 / RGAS) #temperature conversion factor 
+        self.AU     = 1.496e+13                         # Astronomical unit in cm 
+        self.XMSOL  = 1.989e+33                         # Solar mass in grams
+        self.XMSTAR = 1.0                               # Stellar mass
+        self.RGAS   = 8.314e+07                         # Gas constant
+        self.GRAVC  = 6.67e-08                          # Gravitational constant
+        self.R0     = 30.0 * AU                         # Planet semi major axis
+        self.VOL0   = (R0*R0*R0)                        # Unit volume
+        self.XM0    = (XMSOL * XMSTAR)                  # Unit mass
+        self.RHO0   = (XM0 / VOL0)                      # Unit density
+        self.TIME0  = sqrt(VOL0/GRAVC/(XMSTAR*XMSOL))   # Unit time
+        self.V0     = (R0 / TIME0)                      # Unit velocity
+        self.TEMP0  = (V0*V0 / RGAS)                    # Unit temperature
+        self.P0     = XM0 / R0 / TIME0*TIME0            # Unit pressure
         ###########################################
 
     def convert_to_physical_units(self,data):
