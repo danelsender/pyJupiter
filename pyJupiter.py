@@ -581,6 +581,9 @@ class get:
     '''A class to get values out of the simulation data'''
     
     def __init__(self,N):
+        '''Set the output up to which to search
+        
+        IN:     N       = Final output, i.e. search all outputs up to N'''
 
         self.N = N
 
@@ -588,7 +591,6 @@ class get:
         '''Gets the global minimum and maximum for field data
         
         IN:     field           = field of which global minimum and maximum are to be found
-                N               = final output
             
         OUT:    globmin         = minimum of the global field data after N outputs
                 globmax         = maximum of the global field data after N outputs'''
