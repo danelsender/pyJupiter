@@ -578,6 +578,7 @@ class output: #name of the class
         return self.rHmass * volsum
 
 class get:
+    '''A class to get values out of the simulation data'''
     
     def __init__(self,N):
 
