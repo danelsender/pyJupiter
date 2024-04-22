@@ -8,4 +8,4 @@ os.chdir(OUT)
 
 N = 100
 
-jup.output(N).plotmidslice(field='gasdensity', polar=True)
+jup.output(N).plotmidslice(field='gasdensity', polar=False,grid=True)

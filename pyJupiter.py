@@ -203,7 +203,7 @@ class output: #name of the class
         return None
 
 
-    def plot_setlimits(self,polar=True,vertical=False):
+    def plot_setlimits(self,polar=False,vertical=False):
         if self.polar:
             if vertical:
                 self.ax.set_thetamin(80)
@@ -249,7 +249,7 @@ class output: #name of the class
         return None
 
 
-    def plotmidlvl(self,lvl,polar):
+    def plotmidlvl(self,lvl,polar,grid):
         slcdata = self.slice
         xcsize = (self.xlim[lvl,1]-self.xlim[lvl,0])/self.xdim[lvl]
         ycsize = (self.ylim[lvl,1]-self.ylim[lvl,0])/self.ydim[lvl]
@@ -267,15 +267,22 @@ class output: #name of the class
                 cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,shading='flat',cmap=self.cmap)
             else:
                 cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=self.midmin, vmax=self.midmax),shading='flat',cmap=self.cmap)
+                if grid:
+                    grid_corners = [[xplot[0],xplot[-1],xplot[-1],xplot[0]],[yplot[0],yplot[0],yplot[-1],yplot[-1]]]
+                    print(grid_corners)
+                    self.ax.plot(grid_corners[0],grid_corners[1])
 
         
 
         if lvl==0:
-            self.fig.colorbar(cx,ax=self.axp)
+            if polar:
+                self.fig.colorbar(cx,ax=self.axp)
+            else:
+                self.fig.colorbar(cx,ax=self.ax)
         return None
 
     def plotmidslice(self,field='gasdensity',reflvls=-1,polar=False,vel=0,z=0,
-                     save=False,filename=''):
+                     save=False,filename='',grid=False):
         self.field=field
         self.polar = polar
         self.midplaneplot = True
@@ -290,8 +297,8 @@ class output: #name of the class
             figsz = (9,9)
         else:
             figsz=(9,5)
-        self.fig, self.ax  = plt.subplots()
-        self.ax.set_aspect('equal')
+        # self.fig, self.ax  = plt.subplots()
+        # self.ax.set_aspect('equal')
         
         if polar:
             self.ax1 = self.fig.add_subplot()
@@ -300,7 +307,8 @@ class output: #name of the class
             # self.fig.subplots_adjust(right=0.8)
             # self.cbar_ax = self.fig.add_axes([0.85, 0.15, 0.05, 0.7])
         else:    
-            self.ax = self.fig.add_subplot(111)
+            self.fig, self.ax  = plt.subplots()
+            # self.ax = self.fig.add_subplot(111)
             # self.ax = self.fig.add_subplot(111,polar=polar)
         for lvl in reflvls:
             if self.velocityfield==True:
@@ -314,18 +322,21 @@ class output: #name of the class
             #     self.ax1.set_xlim(-self.ylim[lvl,1],self.ylim[lvl,1])
             #     self.ax1.set_ylim(-self.ylim[lvl,1],self.ylim[lvl,1])
             #     self.cax = self.ax1.inset_axes([1.1,-0.9,0.5,2])
-            self.plotmidlvl(lvl,polar) #plot midplane data of reflevel 'lvl'
-        self.ax1.set_aspect('equal')
+            self.plotmidlvl(lvl,polar,grid) #plot midplane data of reflevel 'lvl'
         # self.ax1.set_xlim(-self.ylim[lvl,1],self.ylim[lvl,1])
         # self.ax1.set_ylim(-self.ylim[lvl,1],self.ylim[lvl,1])
-        self.axp.set_ylim(0,self.ylim[lvl,1])
-        self.ax1.axis("off")
-        self.ax.axis("off")
+        if polar:
+            self.ax1.set_aspect('equal')
+            self.axp.set_ylim(0,self.ylim[lvl,1])
+            self.ax1.axis("off")
+            self.ax1.text(x=0.65,y=0.9,s=f"Orbit {self.N}")
+        # else:
+        #     self.ax.axis("off")
         #print the shape of self.slice
         print(f"shape of self.slice: {self.slice.shape}")
         print(f"values of self.slice: {self.slice[0,0]}")
         self.plot_setlimits(polar,vertical=False)
-        self.ax1.text(x=0.65,y=0.9,s=f"Orbit {self.N}")
+        
         if save:
             plt.savefig(f"/home/delsender/figures/intro/{filename}_{self.N:03d}.png")
         plt.show()
@@ -535,7 +546,7 @@ class output: #name of the class
         # multilpy this by Hill sphere volume                    
         self.rHmass = self.rHmass
         if physical:
-            get_physical_units()
+            self.get_physical_units()
             self.rHmass *= XM0
         print(f"The Hill volume is: {rHvolume}")
         print(f"The cell sum volume is: {volsum}")
