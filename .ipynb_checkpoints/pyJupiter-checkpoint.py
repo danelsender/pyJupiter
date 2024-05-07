@@ -383,7 +383,7 @@ class output: #name of the class
             cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,
                           shading='flat',cmap=self.cmap)
         else:
-            cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.LogNorm(vmin=0.0001, vmax=0.3),
+            cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.LogNorm(vmin=0.0001, vmax=0.1),
                           shading='flat',cmap=self.cmap,alpha=1.0)
 
         self.fig.colorbar(cx,ax=self.ax,fraction=0.026, pad=0.04)
