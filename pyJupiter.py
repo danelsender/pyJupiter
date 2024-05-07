@@ -1,3 +1,4 @@
+import matplotlib.ticker
 from numpy import *
 import matplotlib
 #matplotlib.use('tkagg')
@@ -66,6 +67,7 @@ class output: #name of the class
         self.verticalplot = False
         self.midplaneplot = False
         self.planetmass = 0.001
+        self.physical = False
         self.cmap=plt.get_cmap('hot')
 
     def get_physical_units(self):
@@ -78,17 +80,17 @@ class output: #name of the class
         self.XMSTAR = 1.0                               # Stellar mass
         self.RGAS   = 8.314e+07                         # Gas constant
         self.GRAVC  = 6.67e-08                          # Gravitational constant
-        self.R0     = 30.0 * AU                         # Planet semi major axis
-        self.VOL0   = (R0*R0*R0)                        # Unit volume
-        self.XM0    = (XMSOL * XMSTAR)                  # Unit mass
-        self.RHO0   = (XM0 / VOL0)                      # Unit density
-        self.TIME0  = sqrt(VOL0/GRAVC/(XMSTAR*XMSOL))   # Unit time
-        self.V0     = (R0 / TIME0)                      # Unit velocity
-        self.TEMP0  = (V0*V0 / RGAS)                    # Unit temperature
-        self.P0     = XM0 / R0 / TIME0*TIME0            # Unit pressure
+        self.R0     = 30.0 * self.AU                         # Planet semi major axis
+        self.VOL0   = (self.R0*self.R0*self.R0)                        # Unit volume
+        self.XM0    = (self.XMSOL * self.XMSTAR)                  # Unit mass
+        self.RHO0   = (self.XM0 / self.VOL0)                      # Unit density
+        self.TIME0  = sqrt(self.VOL0/self.GRAVC/(self.XMSTAR*self.XMSOL))   # Unit time
+        self.V0     = (self.R0 / self.TIME0)                      # Unit velocity
+        self.TEMP0  = (self.V0*self.V0 / self.RGAS)                    # Unit temperature
+        self.P0     = self.XM0 / self.R0 / self.TIME0*self.TIME0            # Unit pressure
         ###########################################
 
-    def convert_to_physical_units(self,data):
+    def convert_to_physical_units(self,data,field):
         '''Convert from code units to physical cgs units
         
         IN: data                = JUPITER data
@@ -100,21 +102,26 @@ class output: #name of the class
         Planet orbital radius   = 30 au
         
         OUT: phys_data'''
+
+        self.field = field
         
         self.get_physical_units()
 
-        phys_data = data
+        # phys_data = data
         
         if (self.field == 'gasdensity'): #density field
             phys_data = data*self.RHO0
         
         if (self.field == 'gastemperature'): #temperature field
             phys_data = data*self.TEMP0
+
+        if (self.field == 'gasvelocity'): #temperature field
+            phys_data = data*self.V0
         
         return phys_data
 
 
-    def readdata(self,field,reflvl):
+    def readdata(self,field,reflvl,physical=False):
         '''
         reads in .dat file and returns z*y*x dimensional array with simulation data
 
@@ -132,8 +139,6 @@ class output: #name of the class
         xdim = self.xdim[reflvl]
         ydim = self.ydim[reflvl]
         zdim = self.zdim[reflvl]
-        if (field[-8:]=='velocity'):
-            self.velocityfield=True #the field is a vector field
         if self.velocityfield==True:
             fielddata = reshape(data,(3,zdim,ydim,xdim))
         else:
@@ -144,9 +149,14 @@ class output: #name of the class
         else:
             self.cmap=plt.get_cmap('hot')
 
+        self.physical = physical
+        print(self.physical)
+        if self.physical:
+            fielddata = self.convert_to_physical_units(fielddata,field)
+
         return fielddata
     
-    def get_minmax(self,field,reflvls=-1):
+    def get_minmax(self,field,reflvls=-1,velocity=False,physical=False):
         '''
         gets the max and min of field data in the midplane
         
@@ -156,14 +166,20 @@ class output: #name of the class
         OUT: min        = miniumum of field data
              max        = maximum of field data'''
         
+        self.velocityfield = velocity
+        self.physical = physical
+        # print(self.physical)
+        
         if reflvls==-1: #plot all the refinement levels
             reflvls = arange(0,self.maxreflvl+1)
         
-        self.upddate_maxmin(field,reflvls,vel=0,z=0,azigrid=0,avg=False,vert=False)
+        self.upddate_maxmin(field,reflvls,vel=0,z=0,azigrid=0,avg=False,vert=False,
+                            physical=self.physical)
 
         return self.midmin, self.midmax
 
-    def upddate_maxmin(self,field,reflvls,vel=0,z=0,azigrid=0,avg=True,vert=False):
+    def upddate_maxmin(self,field,reflvls,vel=0,z=0,azigrid=0,avg=True,vert=False,
+                       physical=False):
         '''
         computes the maximum and minimum values over all the refinement levels for the colormap
 
@@ -177,20 +193,21 @@ class output: #name of the class
 
         OUT: None
         '''
-        self.midmax = 0.0
-        self.vertmax = 0.0
+        self.midmax = -1.0e10
+        self.vertmax = -1.0e10
         self.midmin = 1.0e10
         self.vertmin = 1.0e10
+        self.physical = physical
+        # print(self.velocityfield)
         for lvl in reflvls:
             if self.velocityfield==True:
-                    middata = self.readdata(field,lvl)[vel,-1-z,:,:]
-                    vertdata = self.readdata(field,lvl)[vel,:,:,int(self.xdim[lvl]/2)]
-                    data = self.readdata(field,lvl)[vel,:,:]
+                    middata = self.readdata(field,lvl,self.physical)[vel,-1-z,:,:]
+                    vertdata = self.readdata(field,lvl,self.physical)[vel,:,:,int(self.xdim[lvl]/2)]
+                    data = self.readdata(field,lvl,self.physical)[vel,:,:]
             else:
-
-                    middata = self.readdata(field,lvl)[-1-z,:,:]
-                    vertdata = self.readdata(field,lvl)[:,:,int(self.xdim[lvl]/2)]
-                    data = self.readdata(field,lvl)
+                    middata = self.readdata(field,lvl,self.physical)[-1-z,:,:]
+                    vertdata = self.readdata(field,lvl,self.physical)[:,:,int(self.xdim[lvl]/2)]
+                    data = self.readdata(field,lvl,self.physical)
             midmaximum = amax(middata)
             midminimum = amin(middata)
             vertmaximum = amax(vertdata)
@@ -204,9 +221,9 @@ class output: #name of the class
                 self.vertmax = vertmaximum
             if vertminimum < self.vertmin:
                 self.vertmin = vertminimum
-
-            if (self.midmin<1e-50):
-                self.midmin = 1e-50
+# Commented out this lines as they make no sense really
+            # if (self.midmin<1e-50):
+            #     self.midmin = 1e-50
 
             if vert==True:
                 if avg==True:
@@ -215,8 +232,9 @@ class output: #name of the class
                 else:
                     self.vertmax = amax(data[:,:,azigrid])
                     self.vertmin = amin(data[:,:,azigrid])
-                if (self.vertmin<1e-50):
-                    self.vertmin = 1e-50
+# Commented out this lines as they make no sense really
+                # if (self.vertmin<1e-50):
+                #     self.vertmin = 1e-50
 
             return None
 
@@ -278,15 +296,21 @@ class output: #name of the class
         print(f"x length is: {len(xplot)}")
         print(f"y length is: {len(yplot)}")
         if polar:
-            # cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=self.midmin, vmax=self.midmax),shading='flat',cmap=self.cmap)
-            cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=0.0000003,  vmax=3),shading='flat',cmap=self.cmap)
+            if self.velocityfield==True:
+                cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.PowerNorm(gamma=0.4325,vmin=-400000,vmax=1.6e6),
+                                      shading='flat',cmap='seismic')
+                cx.set_edgecolor('face')
+            else:
+                cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=self.midmin, vmax=self.midmax),shading='flat',cmap=self.cmap)
+                # cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=0.0000003,  vmax=3),shading='flat',cmap=self.cmap)
             if grid:
                     grid_corners = [[xplot[0],xplot[-1],xplot[-1],xplot[0],xplot[0]],[yplot[0],yplot[0],yplot[-1],yplot[-1],yplot[0]]]
                     print(grid_corners)
                     self.ax.plot(grid_corners[0],grid_corners[1],c='black')
         else:
             if self.velocityfield==True:
-                cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,shading='flat',cmap=self.cmap)
+                cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.PowerNorm(gamma=0.5,vmin=-1,vmax=3),
+                                      shading='flat',cmap='seismic')
             else:
                 cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=self.midmin, vmax=self.midmax),shading='flat',cmap=self.cmap)
                 if grid:
@@ -298,22 +322,29 @@ class output: #name of the class
 
         if lvl==0:
             if polar:
-                self.fig.colorbar(cx,ax=self.ax)
+                cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format='%4.1e',
+                                  label='Gas velocity [cm/s]',
+                                  ticks=[1.6e6,1e6,3e5,0,-3e5,-4e5])
+                # minorticks = cx.norm(arange(-4e5, 2e6, 1e5))
+                # cb.ax.xaxis.set_ticks(minorticks, minor=True)
+                cb.ax.minorticks_on()
             else:
                 self.fig.colorbar(cx,ax=self.ax)
         return None
 
     def plotmidslice(self,field='gasdensity',reflvls=-1,polar=False,vel=0,z=0,
-                     save=False,filename='',grid=False):
+                     save=False,filename='',grid=False,physical=False):
         self.field=field
         self.polar = polar
         self.midplaneplot = True
         self.save = save
-        if (field[-8:]=='velocity'):
+        self.physical = physical
+        if ((field=='gasvelocity') or (field=='dustvelocity')):
             self.velocityfield=True
         if reflvls==-1: #plot all the refinement levels
             reflvls = arange(0,self.maxreflvl+1)
-        self.upddate_maxmin(field,reflvls,vel,z,avg=False,vert=False)
+        self.upddate_maxmin(field,reflvls,vel,z,avg=False,vert=False,
+                            physical=self.physical)
 
         if polar:
             figsz = (9,9)
@@ -335,9 +366,9 @@ class output: #name of the class
             # self.ax = self.fig.add_subplot(111,polar=polar)
         for lvl in reflvls:
             if self.velocityfield==True:
-                self.slice = self.readdata(field,lvl)[vel,-1-z,:,:]
+                self.slice = self.readdata(field,lvl,self.physical)[vel,-1-z,:,:]
             else:
-                self.slice = self.readdata(field,lvl)[-1-z,:,:] #midplane data of reflevel 'lvl'
+                self.slice = self.readdata(field,lvl,self.physical)[-1-z,:,:] #midplane data of reflevel 'lvl'
             # self.ax.set_xlim(-self.ylim[lvl,1]+0.2,self.ylim[lvl,1]+0.2)
             # self.ax.set_ylim(-self.ylim[lvl,1]+0.2,self.ylim[lvl,1]+0.2)
             # _len = self.ylim[lvl,1]
@@ -352,16 +383,16 @@ class output: #name of the class
         #     self.ax1.set_aspect('equal')
         #     self.axp.set_ylim(0,self.ylim[0,1])
         #     self.ax1.axis("off")
-            self.ax.text(x=pi/4,y=2.5,s=f"Orbit {self.N}")
+            self.ax.text(x=14*pi/48,y=2.5,s=f"Orbit {self.N}")
         # else:
         #     self.ax.axis("off")
         #print the shape of self.slice
         print(f"shape of self.slice: {self.slice.shape}")
         print(f"values of self.slice: {self.slice[0,0]}")
         self.plot_setlimits(polar,vertical=False)
-        
+        plt.tight_layout()
         if save:
-            plt.savefig(f"/home/delsender/figures/intro/{filename}_{self.N:03d}.png")
+            plt.savefig(f"/home/delsender/figures/intro/{filename}_{self.N:03d}.pdf")
         plt.show()
         return None
 
@@ -379,9 +410,12 @@ class output: #name of the class
             zplot_2d = transpose(yplot_2d)
             yplot_2d = cont
             slcdata = transpose(slcdata)
-        if self.velocityfield==True:
-            cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,
-                          shading='flat',cmap=self.cmap)
+            if self.velocityfield==True:
+                cx=self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.PowerNorm(gamma=0.44),
+                                      shading='flat',cmap='seismic')
+            else:
+                cx=self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.LogNorm(vmin=self.midmin, vmax=self.midmax),shading='flat',cmap=self.cmap)
+                # cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=0.0000003,  vmax=3),shading='flat',cmap=self.cmap)
         else:
             cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.LogNorm(vmin=0.0001, vmax=0.3),
                           shading='flat',cmap=self.cmap,alpha=1.0)
@@ -399,7 +433,7 @@ class output: #name of the class
         self.polar = polar
         self.azimuth = azi
         self.verticalplot = True
-        if (field[-8:]=='velocity'):
+        if ((field=='gasvelocity') or (field=='dustvelocity')):
             self.velocityfield=True
         if reflvls==-1:
             reflvls = arange(0,self.maxreflvl+1)
@@ -588,7 +622,7 @@ class get:
 
         self.N = N
 
-    def global_minmax(self,field='gasdensity'):
+    def global_minmax(self,field='gasdensity',physical=False):
         '''Gets the global minimum and maximum for field data
         
         IN:     field           = field of which global minimum and maximum are to be found
@@ -597,13 +631,24 @@ class get:
                 globmax         = maximum of the global field data after N outputs'''
         
         self.globmin = 1e+10
-        self.globmax = 0
+        self.globmax = -1e+10
+        self.field = field
+        self.velocityfield = False
+        self.physical = physical
+
+        if ((field=='gasvelocity') or (field=='dustvelocity')):
+            self.velocityfield = True
+
+        print(self.physical)
+        # print(self.velocityfield)
 
         for i in range(self.N):
-            temppmin, tempmax = output(i+1).get_minmax(field='gasdensity')
+            tempmin, tempmax = output(i+1).get_minmax(field=self.field,
+                                                      velocity=self.velocityfield,
+                                                      physical=self.physical)
 
-            if temppmin < self.globmin:
-                self.globmin = temppmin
+            if tempmin < self.globmin:
+                self.globmin = tempmin
             if tempmax > self.globmax:
                 self.globmax = tempmax
         
