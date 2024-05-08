@@ -67,7 +67,7 @@ class output: #name of the class
         self.verticalplot = False
         self.midplaneplot = False
         self.planetmass = 0.001
-        self.physical = False
+        self.physical = True
         self.cmap=plt.get_cmap('hot')
 
     def get_physical_units(self):
@@ -90,7 +90,7 @@ class output: #name of the class
         self.P0     = self.XM0 / self.R0 / self.TIME0*self.TIME0            # Unit pressure
         ###########################################
 
-    def convert_to_physical_units(self,data,field):
+    def convert_to_physical_units(self,data):
         '''Convert from code units to physical cgs units
         
         IN: data                = JUPITER data
@@ -103,11 +103,11 @@ class output: #name of the class
         
         OUT: phys_data'''
 
-        self.field = field
+        # self.field = field
         
         self.get_physical_units()
 
-        # phys_data = data
+        phys_data = data
         
         if (self.field == 'gasdensity'): #density field
             phys_data = data*self.RHO0
@@ -121,7 +121,7 @@ class output: #name of the class
         return phys_data
 
 
-    def readdata(self,field,reflvl,physical=False):
+    def readdata(self,field,reflvl):#,physical=False):
         '''
         reads in .dat file and returns z*y*x dimensional array with simulation data
 
@@ -133,6 +133,8 @@ class output: #name of the class
         '''
         #read .dat file
         data = fromfile(self.folder+'/%s%.1d_%.1d_%.1d.dat'%(field,self.N,reflvl,reflvl))
+        if self.physical == True:
+            data = self.convert_to_physical_units(data)
         # #check the data dimensions
         # print(f"dimensions of the data: {data.shape}")
         #rearange
@@ -149,14 +151,14 @@ class output: #name of the class
         else:
             self.cmap=plt.get_cmap('hot')
 
-        self.physical = physical
-        print(self.physical)
-        if self.physical:
-            fielddata = self.convert_to_physical_units(fielddata,field)
+        # self.physical = physical
+        # print(self.physical)
+        # if self.physical:
+        #     fielddata = self.convert_to_physical_units(field)
 
         return fielddata
     
-    def get_minmax(self,field,reflvls=-1,velocity=False,physical=False):
+    def get_minmax(self,field,reflvls=-1,velocity=False):#,physical=False):
         '''
         gets the max and min of field data in the midplane
         
@@ -166,20 +168,22 @@ class output: #name of the class
         OUT: min        = miniumum of field data
              max        = maximum of field data'''
         
+        # get(self.N)
+        
         self.velocityfield = velocity
-        self.physical = physical
+        # self.physical = physical
         # print(self.physical)
         
         if reflvls==-1: #plot all the refinement levels
             reflvls = arange(0,self.maxreflvl+1)
         
-        self.upddate_maxmin(field,reflvls,vel=0,z=0,azigrid=0,avg=False,vert=False,
-                            physical=self.physical)
+        self.upddate_maxmin(field,reflvls,vel=0,z=0,azigrid=0,avg=False,vert=False)#,
+                            #physical=self.physical)
 
         return self.midmin, self.midmax
 
-    def upddate_maxmin(self,field,reflvls,vel=0,z=0,azigrid=0,avg=True,vert=False,
-                       physical=False):
+    def upddate_maxmin(self,field,reflvls,vel=0,z=0,azigrid=0,avg=True,vert=False):#,
+                    #    physical=False):
         '''
         computes the maximum and minimum values over all the refinement levels for the colormap
 
@@ -197,17 +201,25 @@ class output: #name of the class
         self.vertmax = -1.0e10
         self.midmin = 1.0e10
         self.vertmin = 1.0e10
-        self.physical = physical
+        # self.physical = physical
         # print(self.velocityfield)
         for lvl in reflvls:
+            # if self.velocityfield==True:
+            #         middata = self.readdata(field,lvl,self.physical)[vel,-1-z,:,:]
+            #         vertdata = self.readdata(field,lvl,self.physical)[vel,:,:,int(self.xdim[lvl]/2)]
+            #         data = self.readdata(field,lvl,self.physical)[vel,:,:]
+            # else:
+            #         middata = self.readdata(field,lvl,self.physical)[-1-z,:,:]
+            #         vertdata = self.readdata(field,lvl,self.physical)[:,:,int(self.xdim[lvl]/2)]
+            #         data = self.readdata(field,lvl,self.physical)
             if self.velocityfield==True:
-                    middata = self.readdata(field,lvl,self.physical)[vel,-1-z,:,:]
-                    vertdata = self.readdata(field,lvl,self.physical)[vel,:,:,int(self.xdim[lvl]/2)]
-                    data = self.readdata(field,lvl,self.physical)[vel,:,:]
+                    middata = self.readdata(field,lvl)[vel,-1-z,:,:]
+                    vertdata = self.readdata(field,lvl)[vel,:,:,int(self.xdim[lvl]/2)]
+                    data = self.readdata(field,lvl)[vel,:,:]
             else:
-                    middata = self.readdata(field,lvl,self.physical)[-1-z,:,:]
-                    vertdata = self.readdata(field,lvl,self.physical)[:,:,int(self.xdim[lvl]/2)]
-                    data = self.readdata(field,lvl,self.physical)
+                    middata = self.readdata(field,lvl)[-1-z,:,:]
+                    vertdata = self.readdata(field,lvl)[:,:,int(self.xdim[lvl]/2)]
+                    data = self.readdata(field,lvl)
             midmaximum = amax(middata)
             midminimum = amin(middata)
             vertmaximum = amax(vertdata)
@@ -250,6 +262,9 @@ class output: #name of the class
                 self.ax.set_theta_zero_location('S')
                 self.ax.grid(False)
                 self.ax.set_xticklabels([])
+                # plt.rc_context({'axes.edgecolor':'white'})
+                # self.ax.axis("off")
+                self.ax.set_frame_on(False)
             else:
                 self.ax.set_theta_zero_location('E')
 
@@ -295,24 +310,28 @@ class output: #name of the class
         #print x and y lengths
         print(f"x length is: {len(xplot)}")
         print(f"y length is: {len(yplot)}")
+        if self.field == 'gastemperature':
+            self.cmap = 'plasma'
         if polar:
-            if self.velocityfield==True:
+            if self.velocityfield == True:
                 cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.PowerNorm(gamma=0.4325,vmin=-400000,vmax=1.6e6),
                                       shading='flat',cmap='seismic')
                 cx.set_edgecolor('face')
             else:
-                cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=self.midmin, vmax=self.midmax),shading='flat',cmap=self.cmap)
+                # cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=1e-18, vmax=3e-11),shading='flat',cmap=self.cmap)
+                cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=3, vmax=350),shading='flat',cmap=self.cmap)
                 # cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=0.0000003,  vmax=3),shading='flat',cmap=self.cmap)
+                cx.set_edgecolor('face')
             if grid:
                     grid_corners = [[xplot[0],xplot[-1],xplot[-1],xplot[0],xplot[0]],[yplot[0],yplot[0],yplot[-1],yplot[-1],yplot[0]]]
                     print(grid_corners)
                     self.ax.plot(grid_corners[0],grid_corners[1],c='black')
         else:
-            if self.velocityfield==True:
-                cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.PowerNorm(gamma=0.5,vmin=-1,vmax=3),
+            if self.velocityfield == True:
+                cx = elf.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.PowerNorm(gamma=0.5,vmin=-1,vmax=3),
                                       shading='flat',cmap='seismic')
             else:
-                cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=self.midmin, vmax=self.midmax),shading='flat',cmap=self.cmap)
+                cx = self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=self.midmin, vmax=self.midmax),shading='flat',cmap=self.cmap)
                 if grid:
                     grid_corners = [[xplot[0],xplot[-1],xplot[-1],xplot[0],xplot[0]],[yplot[0],yplot[0],yplot[-1],yplot[-1],yplot[0]]]
                     print(grid_corners)
@@ -321,78 +340,69 @@ class output: #name of the class
         
 
         if lvl==0:
-            if polar:
-                cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format='%4.1e',
-                                  label='Gas velocity [cm/s]',
-                                  ticks=[1.6e6,1e6,3e5,0,-3e5,-4e5])
-                # minorticks = cx.norm(arange(-4e5, 2e6, 1e5))
-                # cb.ax.xaxis.set_ticks(minorticks, minor=True)
-                cb.ax.minorticks_on()
+            if self.field == 'gastemperature':
+                if self.physical:
+                    cblabel = r'Gas temperature [$K$]'
+                else:
+                    cblabel = r'Gas temperature'
+            elif self.field == 'gasdensity':
+                if self.physical:
+                    cblabel = r'Gas density [g/cm$^3$]'
+                else:
+                    cblabel = r'Gas density'
+            elif self.field == 'gasvelocity':
+                if self.physical:
+                    cblabel = r'Gas velocity [cm/s]'
+                else:
+                    cblabel = r'Gas velocity'
+            if self.velocityfield:
+                cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format=matplotlib.ticker.FixedFormatter([r'1.6$\times 10^6$',r'10$^6$',r'3$\times 10^5$',
+                                        r'0',r'-3$\times 10^5$',r'-4$\times 10^5$']),
+                                    label=cblabel,
+                                    ticks=matplotlib.ticker.FixedLocator([1.6e6,1e6,3e5,0,-3e5,-4e5]))
             else:
-                self.fig.colorbar(cx,ax=self.ax)
+                cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format=matplotlib.ticker.LogFormatterSciNotation(),
+                                    label=cblabel)
         return None
 
     def plotmidslice(self,field='gasdensity',reflvls=-1,polar=False,vel=0,z=0,
-                     save=False,filename='',grid=False,physical=False):
+                     save=False,filename='',grid=False,filetype=''):#,physical=False):
         self.field=field
         self.polar = polar
         self.midplaneplot = True
         self.save = save
-        self.physical = physical
+        # self.physical = physical
         if ((field=='gasvelocity') or (field=='dustvelocity')):
             self.velocityfield=True
         if reflvls==-1: #plot all the refinement levels
             reflvls = arange(0,self.maxreflvl+1)
-        self.upddate_maxmin(field,reflvls,vel,z,avg=False,vert=False,
-                            physical=self.physical)
+        self.upddate_maxmin(field,reflvls,vel,z,avg=False,vert=False)#,
+                            # physical=self.physical)
 
         if polar:
             figsz = (9,9)
         else:
             figsz=(9,5)
-        # self.fig, self.ax  = plt.subplots()
-        # self.ax.set_aspect('equal')
-        
         if polar:
             self.fig = plt.figure()
             self.ax = self.fig.add_subplot(polar=polar)
-            # self.ax1.set_aspect('equal')
-            # self.axp = self.fig.add_axes(self.ax1.get_position().bounds, polar=polar,frameon = False)
-            # self.fig.subplots_adjust(right=0.8)
-            # self.cbar_ax = self.fig.add_axes([0.85, 0.15, 0.05, 0.7])
         else:    
             self.fig, self.ax  = plt.subplots()
-            # self.ax = self.fig.add_subplot(111)
-            # self.ax = self.fig.add_subplot(111,polar=polar)
         for lvl in reflvls:
             if self.velocityfield==True:
-                self.slice = self.readdata(field,lvl,self.physical)[vel,-1-z,:,:]
+                self.slice = self.readdata(field,lvl)[vel,-1-z,:,:]
             else:
-                self.slice = self.readdata(field,lvl,self.physical)[-1-z,:,:] #midplane data of reflevel 'lvl'
-            # self.ax.set_xlim(-self.ylim[lvl,1]+0.2,self.ylim[lvl,1]+0.2)
-            # self.ax.set_ylim(-self.ylim[lvl,1]+0.2,self.ylim[lvl,1]+0.2)
-            # _len = self.ylim[lvl,1]
-            # if lvl == reflvls[-1]:
-            #     self.ax1.set_xlim(-self.ylim[lvl,1],self.ylim[lvl,1])
-            #     self.ax1.set_ylim(-self.ylim[lvl,1],self.ylim[lvl,1])
-            #     self.cax = self.ax1.inset_axes([1.1,-0.9,0.5,2])
+                self.slice = self.readdata(field,lvl)[-1-z,:,:] #midplane data of reflevel 'lvl'                
             self.plotmidlvl(lvl,polar,grid) #plot midplane data of reflevel 'lvl'
-        # self.ax1.set_xlim(-self.ylim[lvl,1],self.ylim[lvl,1])
-        # self.ax1.set_ylim(-self.ylim[lvl,1],self.ylim[lvl,1])
         if polar:
-        #     self.ax1.set_aspect('equal')
-        #     self.axp.set_ylim(0,self.ylim[0,1])
-        #     self.ax1.axis("off")
             self.ax.text(x=14*pi/48,y=2.5,s=f"Orbit {self.N}")
-        # else:
-        #     self.ax.axis("off")
         #print the shape of self.slice
         print(f"shape of self.slice: {self.slice.shape}")
         print(f"values of self.slice: {self.slice[0,0]}")
         self.plot_setlimits(polar,vertical=False)
         plt.tight_layout()
         if save:
-            plt.savefig(f"/home/delsender/figures/intro/{filename}_{self.N:03d}.pdf")
+            plt.savefig(f"/home/delsender/figures/intro/{filename}_{self.N:03d}.{filetype}")
         plt.show()
         return None
 
@@ -405,27 +415,57 @@ class output: #name of the class
         zplot = linspace(self.zlim[lvl,0],self.zlim[lvl,1]+(self.zlim[lvl,1]-self.zlim[lvl,0]),self.zdim[lvl]*2+1)
         yplot_2d, zplot_2d = meshgrid(yplot, zplot)
 
+        if self.field == 'gastemperature':
+            self.cmap = 'plasma'
+
         if self.polar:
             cont = transpose(zplot_2d)
             zplot_2d = transpose(yplot_2d)
             yplot_2d = cont
             slcdata = transpose(slcdata)
             if self.velocityfield==True:
-                cx=self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.PowerNorm(gamma=0.44),
+                cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.PowerNorm(gamma=0.4325,vmin=-400000,vmax=1.6e6),
                                       shading='flat',cmap='seismic')
+                cx.set_edgecolor('face')
             else:
-                cx=self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.LogNorm(vmin=self.midmin, vmax=self.midmax),shading='flat',cmap=self.cmap)
+                cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.LogNorm(vmin=3, vmax=350),shading='flat',cmap=self.cmap)
                 # cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=0.0000003,  vmax=3),shading='flat',cmap=self.cmap)
+                cx.set_edgecolor('face')
         else:
             cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.LogNorm(vmin=0.0001, vmax=0.3),
                           shading='flat',cmap=self.cmap,alpha=1.0)
+            cx.set_edgecolor('face')
+        if lvl == 0:
+            if self.field == 'gastemperature':
+                if self.physical:
+                    cblabel = r'Gas temperature [$K$]'
+                else:
+                    cblabel = r'Gas temperature'
+            elif self.field == 'gasdensity':
+                if self.physical:
+                    cblabel = r'Gas density [g/cm$^3$]'
+                else:
+                    cblabel = r'Gas density'
+            elif self.field == 'gasvelocity':
+                if self.physical:
+                    cblabel = r'Gas velocity [cm/s]'
+                else:
+                    cblabel = r'Gas velocity'
+            # self.fig.colorbar(cx,ax=self.ax,fraction=0.026, pad=0.04)
+            if self.velocityfield:
+                cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format=matplotlib.ticker.FixedFormatter([r'1.6$\times 10^6$',r'10$^6$',r'3$\times 10^5$',
+                                        r'0',r'-3$\times 10^5$',r'-4$\times 10^5$']),
+                                    label=cblabel,
+                                    ticks=matplotlib.ticker.FixedLocator([1.6e6,1e6,3e5,0,-3e5,-4e5]))
+            else:
+                cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format=matplotlib.ticker.LogFormatterSciNotation(),
+                                    label=cblabel)
 
-        self.fig.colorbar(cx,ax=self.ax,fraction=0.026, pad=0.04)
 
-        return cx
+        return None
 
     def plotvertslice(self,field='gasdensity',reflvls=-1,polar=False,azi=0.0,vel=0,
-                      filename='',save=False):
+                      filename='',save=False,filetype=''):
         if self.dim!=3:
             print('no vertical slice for 2 dimensional array')
             return None
@@ -442,14 +482,19 @@ class output: #name of the class
             figsz = (9,9)
         else:
             figsz=(12,4)
-        self.fig=plt.figure(figsize=figsz)
-        self.ax = self.fig.add_subplot(111,polar=polar)
+        if polar:
+            self.fig = plt.figure()
+            self.ax = self.fig.add_subplot(polar=polar)
+        else:    
+            self.fig, self.ax  = plt.subplots()     
+        # self.fig=plt.figure(figsize=figsz)
+        # self.ax = self.fig.add_subplot(111,polar=polar)
         if azi != 0.0:
             reflvls = arange(0,1);
         for lvl in reflvls:
             azigrid = int(self.xdim[lvl]/2)
-            if (lvl==0):
-                self.upddate_maxmin(field,[lvl],vel,z=0,azigrid=azigrid,avg=False,vert=True)
+            # if (lvl==0):
+            #     self.upddate_maxmin(field,[lvl],vel,z=0,azigrid=azigrid,avg=False,vert=True)
             if azi != 0.0:
                 azigrid = int(self.xdim[lvl]*(azi + pi)/(2.*pi))
             if self.velocityfield==True:
@@ -457,11 +502,13 @@ class output: #name of the class
             else:
                 self.slice = self.readdata(field,lvl)[:,:,azigrid]
             self.slice = concatenate((self.slice,self.slice[::-1,:]),axis=0)
-            cx = self.plotvertlvl(lvl) #plot midplane data of reflevel 'lvl'
+            # cx = self.plotvertlvl(lvl) #plot midplane data of reflevel 'lvl'
+            self.plotvertlvl(lvl) #plot midplane data of reflevel 'lvl'
         self.plot_setlimits(polar,vertical=True)
         self.ax.text(x=47*pi/80,y=2,s=f"Orbit {self.N}")
+        # plt.tight_layout()
         if save:
-            plt.savefig(f"/home/delsender/figures/intro/{filename}_{self.N:03d}.png")
+            plt.savefig(f"/home/delsender/figures/intro/{filename}_{self.N:03d}.{filetype}")
         plt.show(block=False)
         return None
 
@@ -621,6 +668,27 @@ class get:
         IN:     N       = Final output, i.e. search all outputs up to N'''
 
         self.N = N
+        # self.velocityfield = False
+
+    def get_physical_units(self):
+        '''Caclulates the physical units based on code
+        untits
+        '''
+        ###########################################
+        self.AU     = 1.496e+13                         # Astronomical unit in cm 
+        self.XMSOL  = 1.989e+33                         # Solar mass in grams
+        self.XMSTAR = 1.0                               # Stellar mass
+        self.RGAS   = 8.314e+07                         # Gas constant
+        self.GRAVC  = 6.67e-08                          # Gravitational constant
+        self.R0     = 30.0 * self.AU                         # Planet semi major axis
+        self.VOL0   = (self.R0*self.R0*self.R0)                        # Unit volume
+        self.XM0    = (self.XMSOL * self.XMSTAR)                  # Unit mass
+        self.RHO0   = (self.XM0 / self.VOL0)                      # Unit density
+        self.TIME0  = sqrt(self.VOL0/self.GRAVC/(self.XMSTAR*self.XMSOL))   # Unit time
+        self.V0     = (self.R0 / self.TIME0)                      # Unit velocity
+        self.TEMP0  = (self.V0*self.V0 / self.RGAS)                    # Unit temperature
+        self.P0     = self.XM0 / self.R0 / self.TIME0*self.TIME0            # Unit pressure
+        ###########################################
 
     def global_minmax(self,field='gasdensity',physical=False):
         '''Gets the global minimum and maximum for field data
@@ -636,21 +704,35 @@ class get:
         self.velocityfield = False
         self.physical = physical
 
-        if ((field=='gasvelocity') or (field=='dustvelocity')):
+        if ((self.field=='gasvelocity') or (self.field=='dustvelocity')):
             self.velocityfield = True
 
-        print(self.physical)
+        # print(self.physical)
         # print(self.velocityfield)
 
         for i in range(self.N):
             tempmin, tempmax = output(i+1).get_minmax(field=self.field,
-                                                      velocity=self.velocityfield,
-                                                      physical=self.physical)
+                                                      velocity=self.velocityfield)#,
+                                                    #   physical=self.physical)
 
             if tempmin < self.globmin:
                 self.globmin = tempmin
             if tempmax > self.globmax:
                 self.globmax = tempmax
+
+        if self.physical:
+            self.get_physical_units()
+            if (self.field == 'gasdensity'): #density field
+                self.globmin = self.globmin*self.RHO0
+                self.globmax = self.globmax*self.RHO0
+        
+            if (self.field == 'gastemperature'): #temperature field
+                self.globmin = self.globmin*self.TEMP0
+                self.globmax = self.globmax*self.TEMP0
+
+            if (self.field == 'gasvelocity'): #temperature field
+                self.globmin = self.globmin*self.V0
+                self.globmax = self.globmax*self.V0
         
         return self.globmin, self.globmax
 
