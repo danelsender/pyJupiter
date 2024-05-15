@@ -603,7 +603,7 @@ class output: #name of the class
         plt.show(block=False)
         return None
     
-    def hill_sphere_mass(self,field='gasdensity',planetmass=0.001,physical=False):
+    def hill_sphere_mass(self,field='gasdensity',reflvls=-1,planetmass=0.001,physical=False):
         '''Calculates the mass of gas contained within the Hill
         of the planet.
         
@@ -633,7 +633,9 @@ class output: #name of the class
         # initialise the volume summation
         volsum = 0
         # hardcoding to work for the base mesh
-        lvl = 0
+        # lvl = 0
+        if reflvls==-1:
+            reflvls = arange(0,self.maxreflvl+1)
 
         # calculate the Hill radius
         # UPDATE THE 1 TO RP
@@ -641,35 +643,50 @@ class output: #name of the class
         rH = 1 * (planetmass/(3*(1+planetmass)))**(1/3) 
         # calculate the volume of the Hill sphere
         rHvolume = 4*pi*rH**3 / 3
-
+        for lvl in reflvls:
         # load in the field data (gas density by default)
-        gasdata  = self.readdata(field,lvl)[:,:,:]
-        # get the delta r, theta, and phi
-        deltax = float((self.xlim[lvl,1] - self.xlim[lvl,0])/self.xdim)
-        deltay = float((self.ylim[lvl,1] - self.ylim[lvl,0])/self.ydim)
-        deltaz = float((self.zlim[lvl,1] - self.zlim[lvl,0])/self.zdim)
-        #
-        # loop over all cells
-        # could be done more efficiently with prior knowledge to the data structure
-        #
-        for i, xi in enumerate(self.lines[self.dim_line+2].split(" ")[2:-4]):
-            for j, yi in enumerate(self.lines[self.dim_line+3].split(" ")[2:-4]):
-                for k, zi in enumerate(self.lines[self.dim_line+4].split(" ")[2:-4]):
-                    # we know where the planet is, so just ignore cells far away
-                    # no such condition on z as the disc is very thin!
-                    # x, y, z = float(xi), float(yi), float(zi)
-                    if abs(float(xi)) < pi/20 and 1-rH < float(yi) < 1+rH:
-                        dist = sqrt(1*1 + float(yi)*float(yi) - 2*1*float(yi)*
-                                    (sin(pi/2)*sin(float(zi))*cos(0-float(xi)) + 
-                                     cos(pi/2)*cos(float(zi))))
-                        if dist < rH:
-                            # multiple of two comes for the fact we are running a half disc
-                            self.rHmass += 2*gasdata[k,j,i]
-                            # sum the volumes of each cell
-                            # multiply by 2 as we are in a hemisphere
-                            x, y, z = float(xi), float(yi), float(zi)
-                            volsum += 2 * y*y * sin(z) * deltay * deltax * deltaz
-                            # print(zi)
+            gasdata  = self.readdata(field,lvl)[:,:,:]
+            # get the delta r, theta, and phi
+            deltax = float((self.xlim[lvl,1] - self.xlim[lvl,0])/self.xdim[lvl])
+            deltay = float((self.ylim[lvl,1] - self.ylim[lvl,0])/self.ydim[lvl])
+            deltaz = float((self.zlim[lvl,1] - self.zlim[lvl,0])/self.zdim[lvl])
+            #
+            # loop over all cells
+            # could be done more efficiently with prior knowledge to the data structure
+            #
+            # for i, xi in enumerate(self.lines[self.dim_line+2].split(" ")[2:-4]):
+            for i, xi in enumerate(arange(self.xlim[lvl,0],self.xlim[lvl,1],deltax)):
+                # for j, yi in enumerate(self.lines[self.dim_line+3].split(" ")[2:-4]):
+                for j, yi in enumerate(arange(self.ylim[lvl,0],self.ylim[lvl,1],deltay)):
+                    # for k, zi in enumerate(self.lines[self.dim_line+4].split(" ")[2:-4]):
+                    for k, zi in enumerate(arange(self.zlim[lvl,0],self.zlim[lvl,1],deltaz)):
+                        # we know where the planet is, so just ignore cells far away
+                        # no such condition on z as the disc is very thin!
+                        # x, y, z = float(xi), float(yi), float(zi)
+                        if abs(float(xi)) < pi/20 and abs(float(yi)-1) < rH:
+                            dist = sqrt(1*1 + float(yi)*float(yi) - 2*1*float(yi)*
+                                        (sin(pi/2)*sin(float(zi))*cos(0-float(xi)) + 
+                                        cos(pi/2)*cos(float(zi))))
+                            if dist < rH:
+                                x, y, z = float(xi), float(yi), float(zi)
+                                if lvl != self.maxreflvl:
+                                    if self.xlim[lvl+1,0] < x < self.xlim[lvl+1,1] and \
+                                       self.ylim[lvl+1,0] < y < self.ylim[lvl+1,1] and \
+                                       self.zlim[lvl+1,0] < z < self.zlim[lvl+1,1]:
+                                        pass
+                                    else:
+                                        # multiple of two comes for the fact we are running a half disc
+                                        self.rHmass += 2*gasdata[k,j,i]
+                                        # sum the volumes of each cell
+                                        # multiply by 2 as we are in a hemisphere
+                                        volsum += 2 * y*y * sin(z) * deltay * deltax * deltaz
+                                else:
+                                    # multiple of two comes for the fact we are running a half disc
+                                    self.rHmass += 2*gasdata[k,j,i]
+                                    # sum the volumes of each cell
+                                    # multiply by 2 as we are in a hemisphere
+                                    volsum += 2 * y*y * sin(z) * deltay * deltax * deltaz                            
+                                # print(zi)
         # we have calculated the density within the Hill sphere
         # multilpy this by Hill sphere volume                    
         self.rHmass = self.rHmass
