@@ -257,8 +257,8 @@ class output: #name of the class
                 self.ax.set_thetamin(80)
                 self.ax.set_thetamax(100)
                 self.ax.set_rorigin(-0.2)
-                self.ax.set_rmin(0.2)
-                self.ax.set_rmax(2.6)
+                self.ax.set_rmin(0.9)
+                self.ax.set_rmax(1.1)
                 self.ax.set_theta_zero_location('S')
                 self.ax.grid(False)
                 self.ax.set_xticklabels([])
@@ -314,12 +314,14 @@ class output: #name of the class
             self.cmap = 'plasma'
         if polar:
             if self.velocityfield == True:
-                cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.PowerNorm(gamma=0.4325,vmin=-400000,vmax=1.6e6),
+                # cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.PowerNorm(gamma=0.4325,vmin=-400000,vmax=1.6e6),
+                #                       shading='flat',cmap='seismic')
+                cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,vmin=-250000,vmax=250000,
                                       shading='flat',cmap='seismic')
                 cx.set_edgecolor('face')
             else:
-                # cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=1e-18, vmax=3e-11),shading='flat',cmap=self.cmap)
-                cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=3, vmax=350),shading='flat',cmap=self.cmap)
+                cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=1e-18, vmax=3e-11),shading='flat',cmap=self.cmap)
+                # cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=3, vmax=350),shading='flat',cmap=self.cmap)
                 # cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=0.0000003,  vmax=3),shading='flat',cmap=self.cmap)
                 cx.set_edgecolor('face')
             if grid:
@@ -328,8 +330,10 @@ class output: #name of the class
                     self.ax.plot(grid_corners[0],grid_corners[1],c='black')
         else:
             if self.velocityfield == True:
-                cx = elf.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.PowerNorm(gamma=0.5,vmin=-1,vmax=3),
-                                      shading='flat',cmap='seismic')
+                # cx = self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.PowerNorm(gamma=0.5,vmin=-1,vmax=3),
+                #                       shading='flat',cmap='seismic')
+                cx = self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,vmin=self.midmin,vmax=self.midmax,
+                                      shading='flat',cmap='viridis')
             else:
                 cx = self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=self.midmin, vmax=self.midmax),shading='flat',cmap=self.cmap)
                 if grid:
@@ -356,10 +360,13 @@ class output: #name of the class
                 else:
                     cblabel = r'Gas velocity'
             if self.velocityfield:
-                cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format=matplotlib.ticker.FixedFormatter([r'1.6$\times 10^6$',r'10$^6$',r'3$\times 10^5$',
-                                        r'0',r'-3$\times 10^5$',r'-4$\times 10^5$']),
-                                    label=cblabel,
-                                    ticks=matplotlib.ticker.FixedLocator([1.6e6,1e6,3e5,0,-3e5,-4e5]))
+                # cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format=matplotlib.ticker.FixedFormatter([r'1.6$\times 10^6$',r'10$^6$',r'3$\times 10^5$',
+                #                         r'0',r'-3$\times 10^5$',r'-4$\times 10^5$']),
+                #                     label=cblabel,
+                #                     ticks=matplotlib.ticker.FixedLocator([1.6e6,1e6,3e5,0,-3e5,-4e5]))
+                # cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format=matplotlib.ticker.LogFormatterSciNotation(),
+                #                     label=cblabel)
+                cb = self.fig.colorbar(cx,ax=self.ax)
             else:
                 cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format=matplotlib.ticker.LogFormatterSciNotation(),
                                     label=cblabel)
@@ -381,10 +388,12 @@ class output: #name of the class
 
         if polar:
             figsz = (9,9)
+            self.fig=plt.figure(figsize=figsz)
         else:
             figsz=(9,5)
+            self.fig=plt.figure(figsize=figsz)
         if polar:
-            self.fig = plt.figure()
+            # self.fig = plt.figure()
             self.ax = self.fig.add_subplot(polar=polar)
         else:    
             self.fig, self.ax  = plt.subplots()
@@ -403,7 +412,8 @@ class output: #name of the class
         plt.tight_layout()
         if save:
             plt.savefig(f"/home/delsender/figures/intro/{filename}_{self.N:03d}.{filetype}")
-        plt.show()
+        else:
+            plt.show()
         return None
 
 
@@ -413,6 +423,7 @@ class output: #name of the class
         zcsize = (self.zlim[lvl,1]-self.zlim[lvl,0])/self.zdim[lvl]
         yplot = linspace(self.ylim[lvl,0],self.ylim[lvl,1],self.ydim[lvl]+1)
         zplot = linspace(self.zlim[lvl,0],self.zlim[lvl,1]+(self.zlim[lvl,1]-self.zlim[lvl,0]),self.zdim[lvl]*2+1)
+        # zplot = linspace(self.zlim[lvl,0],self.zlim[lvl,1],self.zdim[lvl]+1)
         yplot_2d, zplot_2d = meshgrid(yplot, zplot)
 
         if self.field == 'gastemperature':
@@ -424,11 +435,16 @@ class output: #name of the class
             yplot_2d = cont
             slcdata = transpose(slcdata)
             if self.velocityfield==True:
-                cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.PowerNorm(gamma=0.4325,vmin=-400000,vmax=1.6e6),
+                # cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.PowerNorm(gamma=0.4325,vmin=-400000,vmax=1.6e6),
+                #                       shading='flat',cmap='seismic')
+                cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.SymLogNorm(linthresh=100, linscale=1, vmin=-100000,vmax=100000),
+                                      shading='flat',cmap='seismic')
+                cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,vmin=-100000,vmax=100000,
                                       shading='flat',cmap='seismic')
                 cx.set_edgecolor('face')
             else:
-                cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.LogNorm(vmin=3, vmax=350),shading='flat',cmap=self.cmap)
+                cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.LogNorm(vmin=1e-18, vmax=3e-11),shading='flat',cmap=self.cmap)
+                # cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.LogNorm(vmin=3, vmax=350),shading='flat',cmap=self.cmap)
                 # cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=0.0000003,  vmax=3),shading='flat',cmap=self.cmap)
                 cx.set_edgecolor('face')
         else:
@@ -448,15 +464,17 @@ class output: #name of the class
                     cblabel = r'Gas density'
             elif self.field == 'gasvelocity':
                 if self.physical:
-                    cblabel = r'Gas velocity [cm/s]'
+                    cblabel = r'Gas vertical velocity [cm/s]'
                 else:
                     cblabel = r'Gas velocity'
             # self.fig.colorbar(cx,ax=self.ax,fraction=0.026, pad=0.04)
             if self.velocityfield:
-                cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format=matplotlib.ticker.FixedFormatter([r'1.6$\times 10^6$',r'10$^6$',r'3$\times 10^5$',
-                                        r'0',r'-3$\times 10^5$',r'-4$\times 10^5$']),
-                                    label=cblabel,
-                                    ticks=matplotlib.ticker.FixedLocator([1.6e6,1e6,3e5,0,-3e5,-4e5]))
+                # cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format=matplotlib.ticker.FixedFormatter([r'1.6$\times 10^6$',r'10$^6$',r'3$\times 10^5$',
+                #                         r'0',r'-3$\times 10^5$',r'-4$\times 10^5$']),
+                #                     label=cblabel,
+                #                     ticks=matplotlib.ticker.FixedLocator([1.6e6,1e6,3e5,0,-3e5,-4e5]))
+                cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format=matplotlib.ticker.LogFormatterSciNotation(),
+                                    label=cblabel)
             else:
                 cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format=matplotlib.ticker.LogFormatterSciNotation(),
                                     label=cblabel)
@@ -464,7 +482,7 @@ class output: #name of the class
 
         return None
 
-    def plotvertslice(self,field='gasdensity',reflvls=-1,polar=False,azi=0.0,vel=0,
+    def plotvertslice(self,field='gasdensity',reflvls=-1,polar=False,azi=0.0,vel=1,
                       filename='',save=False,filetype=''):
         if self.dim!=3:
             print('no vertical slice for 2 dimensional array')
@@ -480,10 +498,12 @@ class output: #name of the class
         self.upddate_maxmin(field,reflvls,vel,z=0,avg=False,vert=True)
         if polar:
             figsz = (9,9)
+            self.fig=plt.figure(figsize=figsz)
         else:
             figsz=(12,4)
+            self.fig=plt.figure(figsize=figsz)
         if polar:
-            self.fig = plt.figure()
+            # self.fig = plt.figure()
             self.ax = self.fig.add_subplot(polar=polar)
         else:    
             self.fig, self.ax  = plt.subplots()     
@@ -501,14 +521,17 @@ class output: #name of the class
                 self.slice = self.readdata(field,lvl)[vel,:,:,azigrid]
             else:
                 self.slice = self.readdata(field,lvl)[:,:,azigrid]
-            self.slice = concatenate((self.slice,self.slice[::-1,:]),axis=0)
+            if self.velocityfield == True and vel == 2:
+                self.slice = concatenate((self.slice,-self.slice[::-1,:]),axis=0)
+            else:
+                self.slice = concatenate((self.slice,self.slice[::-1,:]),axis=0)
             # cx = self.plotvertlvl(lvl) #plot midplane data of reflevel 'lvl'
             self.plotvertlvl(lvl) #plot midplane data of reflevel 'lvl'
         self.plot_setlimits(polar,vertical=True)
         self.ax.text(x=47*pi/80,y=2,s=f"Orbit {self.N}")
         # plt.tight_layout()
         if save:
-            plt.savefig(f"/home/delsender/figures/intro/{filename}_{self.N:03d}.{filetype}")
+            plt.savefig(f"/home/delsender/figures/intro/{filename}_{self.N:03d}.{filetype}", dpi=300)
         plt.show(block=False)
         return None
 
