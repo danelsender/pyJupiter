@@ -80,7 +80,7 @@ class output: #name of the class
         self.XMSTAR = 1.0                               # Stellar mass
         self.RGAS   = 8.314e+07                         # Gas constant
         self.GRAVC  = 6.67e-08                          # Gravitational constant
-        self.R0     = 30.0 * self.AU                         # Planet semi major axis
+        self.R0     = 30 * self.AU                         # Planet semi major axis
         self.VOL0   = (self.R0*self.R0*self.R0)                        # Unit volume
         self.XM0    = (self.XMSOL * self.XMSTAR)                  # Unit mass
         self.RHO0   = (self.XM0 / self.VOL0)                      # Unit density
@@ -320,7 +320,8 @@ class output: #name of the class
                                       shading='flat',cmap='seismic')
                 cx.set_edgecolor('face')
             else:
-                cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=1e-18, vmax=3e-11),shading='flat',cmap=self.cmap)
+                cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=self.midmin, vmax=self.midmax),shading='flat',cmap=self.cmap)
+                # cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=1e-18, vmax=3e-11),shading='flat',cmap=self.cmap)
                 # cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=3, vmax=350),shading='flat',cmap=self.cmap)
                 # cx=self.ax.pcolormesh(xplot_2d,yplot_2d,slcdata,norm=colors.LogNorm(vmin=0.0000003,  vmax=3),shading='flat',cmap=self.cmap)
                 cx.set_edgecolor('face')
@@ -359,6 +360,16 @@ class output: #name of the class
                     cblabel = r'Gas velocity [cm/s]'
                 else:
                     cblabel = r'Gas velocity'
+            elif self.field == 'gaserad':
+                if self.physical:
+                    cblabel = r'Gas radiation energy [erg]'
+                else:
+                    cblabel = r'Gas radiation energy'
+            elif self.field == 'gasstheat':
+                if self.physical:
+                    cblabel = r'Gas stellar heating [erg]'
+                else:
+                    cblabel = r'Gas stellar heating'        
             if self.velocityfield:
                 # cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format=matplotlib.ticker.FixedFormatter([r'1.6$\times 10^6$',r'10$^6$',r'3$\times 10^5$',
                 #                         r'0',r'-3$\times 10^5$',r'-4$\times 10^5$']),
@@ -603,7 +614,7 @@ class output: #name of the class
         plt.show(block=False)
         return None
     
-    def hill_sphere_mass(self,field='gasdensity',reflvls=-1,planetmass=0.001,physical=False):
+    def hill_sphere_mass(self,field='gasdensity',reflvls=-1,planetmass=0.01,physical=False):
         '''Calculates the mass of gas contained within the Hill
         of the planet.
         
@@ -641,6 +652,7 @@ class output: #name of the class
         # UPDATE THE 1 TO RP
         # AND THE STAR MASS XMSTAR
         rH = 1 * (planetmass/(3*(1+planetmass)))**(1/3) 
+        print(rH)
         # calculate the volume of the Hill sphere
         rHvolume = 4*pi*rH**3 / 3
         for lvl in reflvls:
@@ -650,32 +662,45 @@ class output: #name of the class
             deltax = float((self.xlim[lvl,1] - self.xlim[lvl,0])/self.xdim[lvl])
             deltay = float((self.ylim[lvl,1] - self.ylim[lvl,0])/self.ydim[lvl])
             deltaz = float((self.zlim[lvl,1] - self.zlim[lvl,0])/self.zdim[lvl])
+            print(f"z, y, x dimensions:\n {self.zdim[lvl]}, \n {self.ydim[lvl]}, \n {self.xdim[lvl]}" )
+            print(f"z, y, x dimensions arange with delta:\n \
+                  {len(arange(self.zlim[lvl,0],self.zlim[lvl,1],deltaz))}, \n \
+                  {len(arange(self.ylim[lvl,0],self.ylim[lvl,1],deltay))}, \n \
+                  {len(arange(self.xlim[lvl,0],self.xlim[lvl,1],deltax))}")
+            print(f"z, y, x dimensions linspace with dim:\n \
+                  {len(linspace(self.zlim[lvl,0],self.zlim[lvl,1],self.zdim[lvl]))}, \n \
+                  {len(linspace(self.ylim[lvl,0],self.ylim[lvl,1],self.ydim[lvl]))}, \n \
+                  {len(linspace(self.xlim[lvl,0],self.xlim[lvl,1],self.xdim[lvl]))}")
             #
             # loop over all cells
             # could be done more efficiently with prior knowledge to the data structure
             #
             # for i, xi in enumerate(self.lines[self.dim_line+2].split(" ")[2:-4]):
-            for i, xi in enumerate(arange(self.xlim[lvl,0],self.xlim[lvl,1],deltax)):
+            # for i, xi in enumerate(arange(self.xlim[lvl,0],self.xlim[lvl,1],deltax)):
+            for i, xi in enumerate(linspace(self.xlim[lvl,0],self.xlim[lvl,1],self.xdim[lvl])):
                 # for j, yi in enumerate(self.lines[self.dim_line+3].split(" ")[2:-4]):
-                for j, yi in enumerate(arange(self.ylim[lvl,0],self.ylim[lvl,1],deltay)):
+                # for j, yi in enumerate(arange(self.ylim[lvl,0],self.ylim[lvl,1],deltay)):
+                for j, yi in enumerate(linspace(self.ylim[lvl,0],self.ylim[lvl,1],self.ydim[lvl])):
                     # for k, zi in enumerate(self.lines[self.dim_line+4].split(" ")[2:-4]):
-                    for k, zi in enumerate(arange(self.zlim[lvl,0],self.zlim[lvl,1],deltaz)):
+                    # for k, zi in enumerate(arange(self.zlim[lvl,0],self.zlim[lvl,1],deltaz)):
+                    for k, zi in enumerate(linspace(self.zlim[lvl,0],self.zlim[lvl,1],self.zdim[lvl])):
                         # we know where the planet is, so just ignore cells far away
                         # no such condition on z as the disc is very thin!
                         # x, y, z = float(xi), float(yi), float(zi)
-                        if abs(float(xi)) < pi/20 and abs(float(yi)-1) < rH:
+                        if abs(float(xi)) < pi/4 and abs(float(yi)-1) < rH:
                             dist = sqrt(1*1 + float(yi)*float(yi) - 2*1*float(yi)*
                                         (sin(pi/2)*sin(float(zi))*cos(0-float(xi)) + 
                                         cos(pi/2)*cos(float(zi))))
                             if dist < rH:
                                 x, y, z = float(xi), float(yi), float(zi)
-                                if lvl != self.maxreflvl:
+                                if lvl < self.maxreflvl:
                                     if self.xlim[lvl+1,0] < x < self.xlim[lvl+1,1] and \
                                        self.ylim[lvl+1,0] < y < self.ylim[lvl+1,1] and \
                                        self.zlim[lvl+1,0] < z < self.zlim[lvl+1,1]:
                                         pass
                                     else:
                                         # multiple of two comes for the fact we are running a half disc
+                                        # print(k,j,i)
                                         self.rHmass += 2*gasdata[k,j,i]
                                         # sum the volumes of each cell
                                         # multiply by 2 as we are in a hemisphere
@@ -690,14 +715,16 @@ class output: #name of the class
         # we have calculated the density within the Hill sphere
         # multilpy this by Hill sphere volume                    
         self.rHmass = self.rHmass
-        if physical:
-            self.get_physical_units()
-            self.rHmass *= XM0
+        
         print(f"The Hill volume is: {rHvolume}")
         print(f"The cell sum volume is: {volsum}")
         print(f"The Hill mass sphere is: {self.rHmass * rHvolume}")
         print(f"Hill mass cell volume is: {self.rHmass * volsum}")
-        return self.rHmass * volsum
+        self.rHmass = self.rHmass * volsum
+        if physical:
+            self.get_physical_units()
+            self.rHmass /= 0.01
+        return self.rHmass
 
 class get:
     '''A class to get values out of the simulation data'''
