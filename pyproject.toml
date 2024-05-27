@@ -13,6 +13,7 @@ pyvista = "^0.43.5"
 ipywidgets = "^8.1.2"
 trame = "^3.6.0"
 widgetsnbextension = "^4.0.10"
+scipy = "^1.13.1"
 
 [tool.poetry.dev-dependencies]
 jupyter = "^1.0.0"

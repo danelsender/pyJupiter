@@ -67,7 +67,7 @@ class output: #name of the class
         self.verticalplot = False
         self.midplaneplot = False
         self.planetmass = 0.001
-        self.physical = True
+        self.physical = False
         self.cmap=plt.get_cmap('hot')
 
     def get_physical_units(self):
@@ -614,7 +614,7 @@ class output: #name of the class
         plt.show(block=False)
         return None
     
-    def hill_sphere_mass(self,field='gasdensity',reflvls=-1,planetmass=0.01,physical=False):
+    def hill_sphere_mass(self,field='gasdensity',reflvls=-1,planetmass=0.001,physical=False):
         '''Calculates the mass of gas contained within the Hill
         of the planet.
         
@@ -636,13 +636,18 @@ class output: #name of the class
         OUT: rHmass     = mass of gas contained with the Hill sphere
                         in code units unless physical=True'''
         
+        from scipy import stats
         # load in variables
         self.field = field 
         self.planetmass = planetmass
         # initialise the Hill mass
         self.rHmass = 0
+        self.rHdens = 0
+        self.testMass = 0
         # initialise the volume summation
-        volsum = 0
+        # volsum = 0
+        # initialising density median
+        # densMed = []
         # hardcoding to work for the base mesh
         # lvl = 0
         if reflvls==-1:
@@ -652,79 +657,177 @@ class output: #name of the class
         # UPDATE THE 1 TO RP
         # AND THE STAR MASS XMSTAR
         rH = 1 * (planetmass/(3*(1+planetmass)))**(1/3) 
+        # print(f"analytic hardcoded Hill radius: {1 * (0.001/3.003)**(1/3)}")
+        # rH = 0.149380
         print(rH)
         # calculate the volume of the Hill sphere
         rHvolume = 4*pi*rH**3 / 3
         for lvl in reflvls:
         # load in the field data (gas density by default)
             gasdata  = self.readdata(field,lvl)[:,:,:]
+            colat = linspace(self.zlim[lvl,0],self.zlim[lvl,1],self.zdim[lvl])
+            rad = linspace(self.ylim[lvl,0],self.ylim[lvl,1],self.ydim[lvl])
+            azi = linspace(self.xlim[lvl,0],self.xlim[lvl,1],self.xdim[lvl])
+
             # get the delta r, theta, and phi
-            deltax = float((self.xlim[lvl,1] - self.xlim[lvl,0])/self.xdim[lvl])
-            deltay = float((self.ylim[lvl,1] - self.ylim[lvl,0])/self.ydim[lvl])
-            deltaz = float((self.zlim[lvl,1] - self.zlim[lvl,0])/self.zdim[lvl])
-            print(f"z, y, x dimensions:\n {self.zdim[lvl]}, \n {self.ydim[lvl]}, \n {self.xdim[lvl]}" )
-            print(f"z, y, x dimensions arange with delta:\n \
-                  {len(arange(self.zlim[lvl,0],self.zlim[lvl,1],deltaz))}, \n \
-                  {len(arange(self.ylim[lvl,0],self.ylim[lvl,1],deltay))}, \n \
-                  {len(arange(self.xlim[lvl,0],self.xlim[lvl,1],deltax))}")
-            print(f"z, y, x dimensions linspace with dim:\n \
-                  {len(linspace(self.zlim[lvl,0],self.zlim[lvl,1],self.zdim[lvl]))}, \n \
-                  {len(linspace(self.ylim[lvl,0],self.ylim[lvl,1],self.ydim[lvl]))}, \n \
-                  {len(linspace(self.xlim[lvl,0],self.xlim[lvl,1],self.xdim[lvl]))}")
-            #
-            # loop over all cells
-            # could be done more efficiently with prior knowledge to the data structure
-            #
-            # for i, xi in enumerate(self.lines[self.dim_line+2].split(" ")[2:-4]):
-            # for i, xi in enumerate(arange(self.xlim[lvl,0],self.xlim[lvl,1],deltax)):
-            for i, xi in enumerate(linspace(self.xlim[lvl,0],self.xlim[lvl,1],self.xdim[lvl])):
-                # for j, yi in enumerate(self.lines[self.dim_line+3].split(" ")[2:-4]):
-                # for j, yi in enumerate(arange(self.ylim[lvl,0],self.ylim[lvl,1],deltay)):
-                for j, yi in enumerate(linspace(self.ylim[lvl,0],self.ylim[lvl,1],self.ydim[lvl])):
-                    # for k, zi in enumerate(self.lines[self.dim_line+4].split(" ")[2:-4]):
-                    # for k, zi in enumerate(arange(self.zlim[lvl,0],self.zlim[lvl,1],deltaz)):
-                    for k, zi in enumerate(linspace(self.zlim[lvl,0],self.zlim[lvl,1],self.zdim[lvl])):
+            deltax = diff(azi,prepend=azi[0])
+            deltay = diff(rad,prepend=rad[0])
+            deltaz = diff(colat,prepend=colat[0])
+
+            # attempt using only numpy structures
+        #     radGrid, aziGrid, colatGrid = meshgrid(rad, azi, colat)
+
+        #     dv = transpose(radGrid * radGrid * sin(colatGrid) * deltax[1] * deltay[1] * deltaz[1])
+        #     dist2 = transpose(radGrid * radGrid - 2 * radGrid * (sin(colatGrid) * cos(-aziGrid)))
+
+        #     maskDist = dist2 < rH * rH
+        #     if lvl != self.maxreflvl:
+        #         colatidx = (colat >= self.zlim[lvl+1,0])*(colat <= self.zlim[lvl+1,1])
+        #         radidx = (rad >= self.ylim[lvl+1,0])*(rad <= self.ylim[lvl+1,1])
+        #         aziidx = (azi >= self.xlim[lvl+1,0])*(azi <= self.xlim[lvl+1,1])
+
+        #         # radGrid, aziGrid, colatGrid = meshgrid(rad, 
+        #         #                                        azi,
+        #         #                                        colat)
+                
+
+        #         ridxGrid, aidxGrid, cidxGrid = meshgrid(radidx, 
+        #                                                aziidx,
+        #                                                colatidx)
+                
+        #         print(colatidx)
+                
+        #         dv = transpose(radGrid * radGrid * sin(colatGrid) * deltax[1] * deltay[1] * deltaz[1])
+        #         dist2 = transpose(radGrid * radGrid - 2 * radGrid * (sin(colatGrid) * cos(-aziGrid)))
+        #         truth = transpose(ridxGrid * aidxGrid * cidxGrid)
+
+        #         print(-1*dv * truth)
+        #         # print(shape(truth))
+
+        #         # maskMesh = logical_and(self.xlim[lvl+1,0] <= aziGrid, aziGrid <= self.xlim[lvl+1,1])
+        #         # maskMesh = logical_and(maskMesh, self.ylim[lvl+1,0] <= radGrid)
+        #         # maskMesh = logical_and(maskMesh, radGrid <= self.ylim[lvl+1,1])
+        #         # maskMesh = logical_and(maskMesh, self.zlim[lvl+1,0] <= colatGrid)
+        #         # maskMesh = logical_and(maskMesh, colatGrid <= self.zlim[lvl+1,1])
+        #         # maskMesh = logical_and(maskMesh, dist2 < rH * rH)
+        #         # print(where((self.xlim[lvl+1,0] <= colat))[-1][-1])
+        #         # print(where((colat <= self.xlim[lvl+1,1]))[0][0])
+        #         # self.testMass += sum(gasdata[where((self.xlim[lvl+1,0] <= colat))[-1][-1]:,
+        #         #                              where():,:])
+        #         maskMesh = dist2 < rH * rH
+
+
+        #         # print(shape(dv))
+        #         # print(colat[colatidx])
+        #         gasdata  = self.readdata(field,lvl)[:,:,:]
+        #         # print(gasdata[colatidx, radidx, aziidx])
+
+
+
+        #         self.testMass += sum((gasdata * dv + gasdata * -1*dv * truth)[maskMesh])*2
+        #     else:
+        #         maskMesh = dist2 < rH * rH
+        #         # self.testMass +=sum(gasdata * dv) * 2
+               
+        #         maskMesh = maskMesh
+        #         self.testMass += sum((gasdata * dv)[maskMesh])*2
+        # print(self.testMass)
+
+
+
+
+            for i, xi in enumerate(azi):
+                for j, yi in enumerate(rad):
+                    for k, zi in enumerate(colat):
                         # we know where the planet is, so just ignore cells far away
                         # no such condition on z as the disc is very thin!
                         # x, y, z = float(xi), float(yi), float(zi)
-                        if abs(float(xi)) < pi/4 and abs(float(yi)-1) < rH:
-                            dist = sqrt(1*1 + float(yi)*float(yi) - 2*1*float(yi)*
-                                        (sin(pi/2)*sin(float(zi))*cos(0-float(xi)) + 
-                                        cos(pi/2)*cos(float(zi))))
-                            if dist < rH:
-                                x, y, z = float(xi), float(yi), float(zi)
-                                if lvl < self.maxreflvl:
-                                    if self.xlim[lvl+1,0] < x < self.xlim[lvl+1,1] and \
-                                       self.ylim[lvl+1,0] < y < self.ylim[lvl+1,1] and \
-                                       self.zlim[lvl+1,0] < z < self.zlim[lvl+1,1]:
+                        # if i == 0 and j == 0 and k < 5:
+                        #     print(f"np.diff: {diff(coat)} \n deltaz: {deltaz}")
+                        if abs(yi-1) < rH:
+                            dist = 1*1 + (yi)*(yi) - 2*1*(yi) * \
+                                        (sin(pi/2)*sin((zi))*cos(0-(xi)) + 
+                                        cos(pi/2)*cos((zi)))
+                            if dist < rH * rH:
+                            
+                                if lvl != self.maxreflvl:
+                                    if self.xlim[lvl+1,0] <= xi <= self.xlim[lvl+1,1] and \
+                                       self.ylim[lvl+1,0] <= yi <= self.ylim[lvl+1,1] and \
+                                       self.zlim[lvl+1,0] <= zi <= self.zlim[lvl+1,1]:
                                         pass
                                     else:
                                         # multiple of two comes for the fact we are running a half disc
-                                        # print(k,j,i)
-                                        self.rHmass += 2*gasdata[k,j,i]
-                                        # sum the volumes of each cell
-                                        # multiply by 2 as we are in a hemisphere
-                                        volsum += 2 * y*y * sin(z) * deltay * deltax * deltaz
+                                        
+                                        self.rHmass += gasdata[k,j,i] * yi*yi * sin(zi) * deltay[j] * deltax[i] * deltaz[k] 
+                                    
                                 else:
-                                    # multiple of two comes for the fact we are running a half disc
-                                    self.rHmass += 2*gasdata[k,j,i]
-                                    # sum the volumes of each cell
-                                    # multiply by 2 as we are in a hemisphere
-                                    volsum += 2 * y*y * sin(z) * deltay * deltax * deltaz                            
-                                # print(zi)
-        # we have calculated the density within the Hill sphere
-        # multilpy this by Hill sphere volume                    
-        self.rHmass = self.rHmass
+                                
+                                    self.rHmass += gasdata[k,j,i] * yi*yi * sin(zi) * deltay[j] * deltax[i] * deltaz[k] 
+
+        #     if (False) :
+        #         data  = self.readdata(field,lvl)[:,:,int(self.xdim[lvl]/2)]
+        #         print(shape(data))
+        #         print(f"z lim: {self.zlim[lvl,1]} \n pi/2: {pi/2}")
+        #         print(f"max colat: {max(colat)}")
+        #         # for i, xi in enumerate(azi):
+        #         for j, yi in enumerate(rad):
+        #             for k, zi in enumerate(colat):
+        #                         if lvl < self.maxreflvl:
+        #                             # if self.xlim[lvl+1,0] < azi[i] < self.xlim[lvl+1,1] and \
+        #                             if self.ylim[lvl+1,0] <= rad[j] <= self.ylim[lvl+1,1] and \
+        #                             self.zlim[lvl+1,0] <= colat[k] < self.zlim[lvl+1,1]:
+        #                                 data[k,j] = 0
+        #                             else:
+        #                                 pass
+        #         data = concatenate((data,data[::-1,:]),axis=0)
+        #         figsz=(12,4)
+        #         self.fig=plt.figure(figsize=figsz)
+        #         self.fig, self.ax  = plt.subplots()  
+        #         self.cmap = 'plasma'
+        #         slcdata = data
+        #         ycsize = (self.ylim[lvl,1]-self.ylim[lvl,0])/self.ydim[lvl]
+        #         zcsize = (self.zlim[lvl,1]-self.zlim[lvl,0])/self.zdim[lvl]
+        #         yplot = linspace(self.ylim[lvl,0],self.ylim[lvl,1],self.ydim[lvl]+1)
+        #         zplot = linspace(self.zlim[lvl,0],self.zlim[lvl,1]+(self.zlim[lvl,1]-self.zlim[lvl,0]),self.zdim[lvl]*2+1)
+        #         # zplot = linspace(self.zlim[lvl,0],self.zlim[lvl,1],self.zdim[lvl]+1)
+        #         yplot_2d, zplot_2d = meshgrid(yplot, zplot)
+        #         cx = self.ax.pcolormesh(yplot_2d,zplot_2d,slcdata,norm=colors.LogNorm(vmin=1.3e-6,vmax=4.2e-3),shading='flat',cmap=self.cmap)
+        #         cx.set_edgecolor('face')
+        #         cblabel = r'Gas density'
+        #         cb = self.fig.colorbar(cx,ax=self.ax,pad=0.15,format=matplotlib.ticker.LogFormatterSciNotation(),
+        #                                 label=cblabel)
+        # # we have calculated the density within the Hill sphere
+        # # multilpy this by Hill sphere volume                    
+        # self.rHmass = self.rHmass
+
+        # # fig, ax = plt.subplots()
+        # # # x = sort(densMed)
+        # # # y = x.cumsum()
+        # # # y /= y[-1]
+        # # # plt.hist(x, bins=logspace(log10(1e-11),log10(0.2), 100), density=True, histtype="step", cumulative=True)
+        # # # plt.plot(x,y)
+        # # # res = stats.ecdf(x)
+        # # # res.cdf.plot(ax)
+        # # count, bins = histogram(densMed, normed = True, bins = 100)
+        # # pdf = count / count.sum()
+        # # cdf = pdf.cumsum()
+        # # plt.plot(bins[1:],pdf)
+        # # plt.plot(bins[1:],cdf)
+
+
+        # # plt.show()
         
-        print(f"The Hill volume is: {rHvolume}")
-        print(f"The cell sum volume is: {volsum}")
-        print(f"The Hill mass sphere is: {self.rHmass * rHvolume}")
-        print(f"Hill mass cell volume is: {self.rHmass * volsum}")
-        self.rHmass = self.rHmass * volsum
-        if physical:
-            self.get_physical_units()
-            self.rHmass /= 0.01
-        return self.rHmass
+        # print(f"The Hill volume is: {rHvolume}")
+        # print(f"The cell sum volume is: {2*volsum}")
+        # print(f"The Hill mass sphere is: {self.rHmass * rHvolume}")
+        # print(f"Hill mass cell volume is: {self.rHmass * volsum}")
+        self.rHmass = self.rHmass * 2
+        # # self.rHdens = self.rHdens * rHvolume * 2
+        # if physical:
+        #     self.get_physical_units()
+        #     self.rHmass /= 0.001
+        return self.rHmass, self.rHmass / 0.001# , mean(densMed) * rHvolume
+        # return None
 
 class get:
     '''A class to get values out of the simulation data'''
