@@ -671,33 +671,33 @@ class output: #name of the class
         # load in the field data (gas density by default)
             gasdata  = self.readdata(field,lvl)[:,:,:]
             colat_c = linspace(self.zlim[lvl,0],self.zlim[lvl,1],self.zdim[lvl])
-            alt_co = array(self.lines[lvl*11+6+4].split(" "))
-            alt_co = alt_co[2:-3].astype(float)
+            # alt_co = array(self.lines[lvl*11+6+4].split(" "))
+            # alt_co = alt_co[2:-3].astype(float)
             rad_c = linspace(self.ylim[lvl,0],self.ylim[lvl,1],self.ydim[lvl])
-            alt_ra = array(self.lines[lvl*11+6+3].split(" "))
-            alt_ra = alt_ra[2:-3].astype(float)
+            # alt_ra = array(self.lines[lvl*11+6+3].split(" "))
+            # alt_ra = alt_ra[2:-3].astype(float)
             azi_c = linspace(self.xlim[lvl,0],self.xlim[lvl,1],self.xdim[lvl])
-            alt_az = array(self.lines[lvl*11+6+2].split(" "))
-            alt_az = alt_az[2:-3].astype(float)
+            # alt_az = array(self.lines[lvl*11+6+2].split(" "))
+            # alt_az = alt_az[2:-3].astype(float)
             # print(colat[0])
             # print(float(self.lines[lvl*11+6+4].split(" ")[2]))
             # print(alt_co[0])
 
 
-            data  = self.readdata(field,lvl)[:,:,:]
+            # data  = self.readdata(field,lvl)[:,:,:]
             
 
             # rad, azi, col = meshgrid(alt_ra[:-1], alt_az[:-1], alt_co[:-1])
-            rad, azi, col = meshgrid(rad_c, azi_c, colat_c)
-            rad = transpose(rad)
-            azi = transpose(azi)
-            col = transpose(col)
-            print(shape(rad))
+            # rad, azi, col = meshgrid(rad_c, azi_c, colat_c)
+            # rad = transpose(rad)
+            # azi = transpose(azi)
+            # col = transpose(col)
+            # print(shape(rad))
             deltax = diff(azi_c,prepend=azi_c[0])
             deltay = diff(rad_c,prepend=rad_c[0])
             deltaz = diff(colat_c,prepend=colat_c[0])
             # dv = rad*rad * sin(col) * diff(alt_ra)[0] * diff(alt_az)[0] * diff(alt_co)[0]
-            dv = rad_c[2]*rad_c[2] * sin(colat_c[2]) * deltay[2] * deltax[2] * deltaz[2]
+            # dv = rad_c[2]*rad_c[2] * sin(colat_c[2]) * deltay[2] * deltax[2] * deltaz[2]
             # calculate the cell volume of the mesh grid
             
             
@@ -771,10 +771,21 @@ class output: #name of the class
                                         # if yi*yi * sin(zi) * deltay[j] * deltax[i] * deltaz[k] > maxVol:
                                             # maxVol = yi*yi * sin(zi) * deltay[j] * deltax[i] * deltaz[k]
                 # print(maxVol)
+            # colat_c = linspace(self.zlim[lvl,0],self.zlim[lvl,1],self.zdim[lvl])
+            # rad_c = linspace(self.ylim[lvl,0],self.ylim[lvl,1],self.ydim[lvl])
+            # azi_c = linspace(self.xlim[lvl,0],self.xlim[lvl,1],self.xdim[lvl])
+            # deltax = diff(azi_c,prepend=azi_c[0])
+            # deltay = diff(rad_c,prepend=rad_c[0])
+            # deltaz = diff(colat_c,prepend=colat_c[0])
             if (True):
                 @njit(fastmath=True)
-                def hill_sphere_mass_njit(gasdata,rad_c,azi_c,colat_c,dv,rH,lvl,maxreflvl,xlim,ylim,zlim,
-                                        deltax,deltay,deltaz):
+                def hill_sphere_mass_njit(gasdata,rH,lvl,maxreflvl,xlim,ylim,zlim,rad_c,colat_c,azi_c):
+                    # colat_c = linspace(zlim[lvl,0],zlim[lvl,1],zdim[lvl])
+                    # rad_c = linspace(ylim[lvl,0],ylim[lvl,1],ydim[lvl])
+                    # azi_c = linspace(xlim[lvl,0],xlim[lvl,1],xdim[lvl])
+                    # deltax = diff(azi_c,prepend=azi_c[0])
+                    # deltay = diff(rad_c,prepend=rad_c[0])
+                    # deltaz = diff(colat_c,prepend=colat_c[0])
                     rHmass = 0
                     for i, xi in enumerate(azi_c):
                         for j, yi in enumerate(rad_c):
@@ -796,7 +807,7 @@ class output: #name of the class
                                             
                     return rHmass
                 
-                self.rHmass += hill_sphere_mass_njit(data,rad_c,azi_c,colat_c,dv,rH,lvl,self.maxreflvl,self.xlim,self.ylim,self.zlim,deltax,deltay,deltaz)
+                self.rHmass += hill_sphere_mass_njit(gasdata,rH,lvl,self.maxreflvl,self.xlim,self.ylim,self.zlim,rad_c,colat_c,azi_c)
 
             if (False) :
                 if lvl != self.maxreflvl:
