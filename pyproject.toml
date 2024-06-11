@@ -14,6 +14,8 @@ ipywidgets = "^8.1.2"
 trame = "^3.6.0"
 widgetsnbextension = "^4.0.10"
 scipy = "^1.13.1"
+numba = "^0.59.1"
+jupyter = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
 jupyter = "^1.0.0"
